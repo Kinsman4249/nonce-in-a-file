@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The three inline scripts a generated file embeds (Argon2id, the QR encoder,
+  and the decryptor runtime) are now marked `data-cfasync="false"` so
+  Cloudflare Rocket Loader leaves them untouched. Rocket Loader was deferring
+  and retyping them (rewriting their `type` to a mangled
+  `*-text/javascript`), and because the file's CSP blocks Rocket Loader's own
+  loader script those deferred scripts never ran - the decryptor stayed inert
+  and the "Share this file" QR never rendered, even over https.
 - The builder's inline script is no longer broken when a deploy-time value from
   a GitHub Actions variable contains an apostrophe or other quote. A value such
   as a `BUILDER_TITLE` of `Ethan Antonio's File Encrypter` was injected

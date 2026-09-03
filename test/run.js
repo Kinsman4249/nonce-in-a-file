@@ -92,6 +92,15 @@ const decHeader = fs.readFileSync(path.join(ROOT, 'test', 'vendor', 'jsqr.js'), 
 if (/Apache License/i.test(decHeader) || /cozmo|jsQR/i.test(decHeader)) pass('jsqr appears to be Apache-2.0 (jscozmo/jsQR)');
 else fail('jsqr license header present', decHeader.slice(0, 80));
 
+console.log('\n[C.5] Output inline scripts carry data-cfasync="false" (Rocket Loader)');
+// Cloudflare Rocket Loader defers and retypes inline scripts it picks up; when the
+// file's CSP then blocks Rocket Loader's own loader, those deferred scripts never
+// run and the decryptor (and its "Share this file" QR) stays dead. Every output
+// inline <script> must therefore opt out so Rocket Loader leaves it alone.
+const cfasync = (builderHtml.match(/<script data-cfasync="false">/g) || []).length;
+if (cfasync >= 3) pass('all output inline scripts declare data-cfasync="false" (' + cfasync + ' found)');
+else fail('all output inline scripts declare data-cfasync="false"', 'found ' + cfasync + ' of 3');
+
 console.log('\n[D] Runtime share UI (DOM stub: hosted vs file://)');
 // Extract the generated fiel decayptor body (OUTPUT_JS) and boot it under a
 // minimal DOM stub to confirm: served over http(s) the toggle reveals a QR

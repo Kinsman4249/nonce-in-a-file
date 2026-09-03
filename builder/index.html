@@ -1633,16 +1633,21 @@
       // its WASM blob is base64-embedded in the source itself. Escape any "</script"
       // the vendor bundle might contain into a JS-string-literal-safe form so a
       // future bundle can never close this <script> tag early and break the output.
-      '<script>',
+      // Each output inline script is tagged data-cfasync="false" so Cloudflare's
+      // Rocket Loader does not defer and retype it: Rocket Loader rewrites the
+      // inline scripts it picks up, and when the site's CSP blocks its own loader
+      // script the deferred scripts never run, killing the decryptor and the
+      // "Share this file" QR.
+      '<script data-cfasync="false">',
       argon2LibSource().replace(/<\/script/g, '<\\/script'),
       '<' + '/' + 'script>',
       // Deploy the QR Code encoder inline (qrcode-generator, MIT) so the runtime
       // "Share this file" QR needs zero network access. Unmodified vendored
       // bundle (builder/vendor/qrcode.js); exposed as the global `qrcode`.
-      '<script>',
+      '<script data-cfasync="false">',
       qrLibSource().replace(/<\/script/g, '<\\/script'),
       '<' + '/' + 'script>',
-      '<script>',
+      '<script data-cfasync="false">',
       OUTPUT_JS.replace('__CONFIG__', JSON.stringify({ payload: payload }).replace(/</g, '\\u003c')),
       '<' + '/' + 'script>',
       '</body>',
