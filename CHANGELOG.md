@@ -7,22 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-03
+
 ### Added
 
 - Added `PRIVACY.md`, documenting that the builder and generated output files collect no data and make no network requests beyond optional footer links.
+- Generated files now gzip-compress plaintext before encryption using the browser's standard Compression Streams API, shrinking text-heavy documents. Incompressible input (e.g. already-compressed media) is stored uncompressed automatically.
 
 ### Changed
 
 - The "Learn more" button is now always included in every generated output file and cannot be turned off in the builder, so no protected file can omit the link back to the project origin.
 - Default footer links in the builder now point at this repository's docs: the Legal button defaults to `LICENSE` and the Privacy button defaults to `PRIVACY.md` instead of `example.com` placeholders.
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
+- The generated-file lock icon now defaults to the coloured lock instead of the grey outline, matching the banner mark.
 
 ## [1.0.0] - 2026-09-03
 
