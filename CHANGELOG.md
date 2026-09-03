@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Outlook \ Gmail \ Chrome Plugin
+- Message only mode displays in browser.
+- SSO, key escrow, online decryption via Entra, SAML, etc.
+
 ## [1.5.0] - 2026-09-03
 
 ### Added
