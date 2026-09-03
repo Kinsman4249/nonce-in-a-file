@@ -37,6 +37,14 @@ double-clicked from local disk.
 - The password is used only in the visitor's browser to derive the key. It is
   never stored or embedded. There is no recovery mechanism, so the owner must
   keep a copy of any password they use.
+- Filenames and MIME types are private too: they are encrypted alongside the
+  document inside the payload. A generated file reveals nothing about what the
+  document is called (e.g. `Layoffs_Draft_Q3.docx`) until the password is
+  entered.
+- Custom CSS is sanitized before it is inlined. External references are stripped
+  so the output keeps working offline, and every `<` character is removed so an
+  uploaded stylesheet cannot close the built-in style block and inject markup or
+  script into the generated file.
 
 The "Learn more" button is included in every output file and cannot be turned
 off. Its destination is fixed in the builder (see `LEARN_MORE_URL` in
@@ -56,8 +64,9 @@ committed to the repo. Leave `LOGO_URL` unset (or empty) to keep the padlock.
 ### Creating a protected file
 
 1. Open the builder page in a browser.
-2. Choose the file to protect and set a password (the page recommends at least
-   8 characters and there is no way to recover it).
+2. Choose the file to protect and set a password (the page requires at least 12
+   characters, an estimated ~64 bits of entropy, and rejects well-known
+   passwords; there is no way to recover it).
 3. Adjust branding as needed. Every element (logo, banner, heading,
    description, lock icon, legal/privacy buttons, custom CSS) has an
    independent on/off toggle applied at generation time. The Learn more button

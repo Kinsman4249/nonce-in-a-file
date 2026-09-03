@@ -26,6 +26,10 @@ contains decrypt-and-download logic only and no network code of its own. When a
 visitor enters the correct password, the original file is decrypted in their
 browser and downloaded to their device; it is not sent anywhere.
 
+Not even the filename is exposed: it is encrypted inside the payload alongside
+the document, so there is no cleartext metadata in a generated file for anyone
+to read.
+
 ## The only possible network requests
 
 The footer of every generated file contains links to this project's legal,

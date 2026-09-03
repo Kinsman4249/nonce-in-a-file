@@ -41,6 +41,8 @@
   .error{color:#b91c1c;font-size:13px;margin-top:12px;display:none}
   code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:12px}
   .pw-hint{margin:8px 0 0;font-size:12px;color:#6b7280}
+  .pw-hint.weak{color:#b91c1c}
+  .pw-hint.ok{color:#0f766e}
 </style>
 </head>
 <body>
@@ -62,6 +64,7 @@
       <label for="password">Password</label>
       <input type="password" id="password" autocomplete="new-password" required>
       <p class="pw-hint">Used only in your browser to derive the encryption key. Never stored, never transmitted. There is no way to recover it, so keep a copy somewhere safe.</p>
+      <p class="pw-hint" id="pwStrength"></p>
     </div>
   </section>
 
@@ -180,7 +183,9 @@
   // generated file shows in the top-left, so an owner can use their own hosted
   // logo without committing it. When empty, fall back to the grey padlock.
   var LOGO_URL = '';
-  var DEFAULT_LOGO = LOGO_URL ||
+  // LOGO_URL arrives from a CI repository variable, so validate its scheme at
+  // runtime: only http(s) or an image data URI is ever honored as the mark.
+  var DEFAULT_LOGO = /^(https?:|data:image\/)/i.test(LOGO_URL) ? LOGO_URL :
     svgUri(
       "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'" +
       " stroke='#94a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
@@ -220,6 +225,80 @@
     return base + '.html';
   }
 
+  var MIN_PASSWORD_LEN = 12;
+  var MIN_PASSWORD_BITS = 64;
+
+  // A small list of the most common/known-weak passwords. The entropy estimate
+  // below overstates real strength (people do not choose randomly), so this
+  // catches the worst offenders length alone would let through.
+  var COMMON_PASSWORDS = {
+    '123456': 1, 'password': 1, '12345678': 1, 'qwerty': 1, '123456789': 1,
+    '12345': 1, '1234': 1, '111111': 1, '1234567': 1, 'dragon': 1,
+    '123123': 1, 'baseball': 1, 'abc123': 1, 'football': 1, 'monkey': 1,
+    'letmein': 1, 'shadow': 1, 'master': 1, '666666': 1, 'qwertyuiop': 1,
+    '123321': 1, 'mustang': 1, '1234567890': 1, 'michael': 1, '654321': 1,
+    'superman': 1, '1qaz2wsx': 1, '7777777': 1, '121212': 1, '000000': 1,
+    'qazwsx': 1, '123qwe': 1, 'killer': 1, 'trustno1': 1, 'jordan': 1,
+    'jennifer': 1, 'zxcvbnm': 1, 'asdfgh': 1, 'hunter': 1, 'buster': 1,
+    'soccer': 1, 'harley': 1, 'batman': 1, 'andrew': 1, 'tigger': 1,
+    'sunshine': 1, 'iloveyou': 1, 'charlie': 1, 'robert': 1, 'thomas': 1,
+    'hockey': 1, 'ranger': 1, 'daniel': 1, 'starwars': 1, '112233': 1,
+    'george': 1, 'computer': 1, 'michelle': 1, 'jessica': 1, 'pepper': 1,
+    '1111': 1, 'zxcvbn': 1, '555555': 1, '11111111': 1, '131313': 1,
+    'freedom': 1, '777777': 1, 'pass': 1, 'maggie': 1, '159753': 1,
+    'aaaaaa': 1, 'ginger': 1, 'princess': 1, 'joshua': 1, 'cheese': 1,
+    'amanda': 1, 'summer': 1, 'love': 1, 'ashley': 1, 'nicole': 1,
+    'chelsea': 1, 'biteme': 1, 'matthew': 1, 'access': 1, 'yankees': 1,
+    '987654321': 1, 'dallas': 1, 'austin': 1, 'thunder': 1, 'taylor': 1,
+    'matrix': 1, 'welcome': 1, 'admin': 1, 'hello': 1, 'apple': 1,
+    'secret': 1, 'flower': 1, 'lovely': 1, 'q1w2e3r4': 1, '1q2w3e4r': 1
+  };
+
+  function commonPassword(pw) {
+    return Object.prototype.hasOwnProperty.call(COMMON_PASSWORDS, String(pw).toLowerCase());
+  }
+
+  // Rough lower-bound estimate, not a real measurement: it assumes every
+  // character was chosen at random from the pools the password actually uses,
+  // which every real password overstates. It is only used to prevent a short or
+  // single-pool password from passing on length alone.
+  function estimateBits(pw) {
+    var pool = 0;
+    if (/[a-z]/.test(pw)) pool += 26;
+    if (/[A-Z]/.test(pw)) pool += 26;
+    if (/[0-9]/.test(pw)) pool += 10;
+    if (/[^A-Za-z0-9]/.test(pw)) pool += 34;
+    if (pool === 0) pool = 26;
+    return Math.round(String(pw).length * Math.log2(pool));
+  }
+
+  // Footer links accept only http(s), never javascript:, data:, or anything
+  // with quotes/angle brackets that could escape the href attribute.
+  function validHttpUrl(u) {
+    u = String(u == null ? '' : u).trim();
+    return /^https?:\/\/[^\s'"<>]+$/i.test(u);
+  }
+
+  function normColor(v, def) {
+    v = String(v == null ? '' : v).trim();
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v : def;
+  }
+
+  // Plaintext envelope placed in front of the compressed document: a JSON
+  // header (newline-free, because JSON.stringify escapes every control
+  // character) holding the real filename, MIME type and compression flag,
+  // then a single newline, then the document bytes. The whole envelope is
+  // what gets encrypted, so the recipient only learns the filename after
+  // entering the password.
+  function buildEnvelope(data, name, type, z) {
+    var head = new TextEncoder().encode(JSON.stringify({ n: name || '', t: type || '', z: z ? 1 : 0 }));
+    var out = new Uint8Array(head.length + 1 + data.length);
+    out.set(head, 0);
+    out[head.length] = 10;
+    out.set(data, head.length + 1);
+    return out;
+  }
+
   function readBytes(file) {
     return new Promise(function (resolve, reject) {
       var r = new FileReader();
@@ -240,8 +319,9 @@
 
   function imageToDataUri(file) {
     if (!file) return Promise.resolve(null);
+    var mime = /^image\/[a-z0-9.+-]+$/i.test(file.type || '') ? file.type : 'application/octet-stream';
     return readBytes(file).then(function (bytes) {
-      return 'data:' + (file.type || 'application/octet-stream') + ';base64,' + bytesToB64(bytes);
+      return 'data:' + mime + ';base64,' + bytesToB64(bytes);
     });
   }
 
@@ -264,7 +344,19 @@
   // so the output keeps working fully offline.
   // -------------------------------------------------------------------------
   function sanitizeCss(text, warnings) {
-    var lines = String(text || '').split('\n');
+    var s = String(text || '');
+
+    // Raw-text context guard: inside <style> the HTML parser does not decode
+    // entity references, so replacing "<" with "&lt;" would not help. CSS has
+    // no legitimate use of "<" (it is not an HTML document), so strip every
+    // occurrence. "&lt;" would be passed through verbatim to the CSS parser,
+    // so stripping is both safe and functional whereas encoding is not.
+    if (s.indexOf('<') !== -1) {
+      warnings.push('Removed all "<" characters from your CSS: a "<" can close the style block early and inject markup/script into the output. CSS never needs it.');
+      s = s.replace(/</g, '');
+    }
+
+    var lines = s.split('\n');
     var out = [];
     var external = /url\((['"]?)(https?:)?\/\//i;
     lines.forEach(function (line) {
@@ -298,6 +390,11 @@
           ? { data: compressed, z: 1 }
           : { data: bytes, z: 0 };
       }).then(function (pack) {
+        // The original filename and MIME type ride inside the encrypted
+        // envelope, not in cleartext metadata: a protected file must not leak
+        // its own name (e.g. "Layoffs_Draft_Q3.docx") to anyone holding it
+        // without the password.
+        var envelope = buildEnvelope(pack.data, file.name, file.type, pack.z);
         return crypto.subtle.importKey(
           'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
         ).then(function (km) {
@@ -309,13 +406,12 @@
             ['encrypt', 'decrypt']
           );
         }).then(function (key) {
-          return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, pack.data);
+          return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, envelope);
         }).then(function (ctBuf) {
           return {
             salt: bytesToB64(salt),
             iv: bytesToB64(iv),
-            ct: bytesToB64(new Uint8Array(ctBuf)),
-            z: pack.z
+            ct: bytesToB64(new Uint8Array(ctBuf))
           };
         });
       });
@@ -390,13 +486,17 @@
     '        return crypto.subtle.decrypt(',
     '          {name:"AES-GCM",iv:b64ToBytes(CONFIG.payload.iv)},key,b64ToBytes(CONFIG.payload.ct));',
     '      })',
-    '      .then(function(pt){',
-    '        var data = CONFIG.payload.z ? decompress(pt) : Promise.resolve(pt);',
-    '        return data.then(function(final){',
-    '          var blob=new Blob([final],{type:CONFIG.payload.type||"application/octet-stream"});',
+    '      .then(function(ab){',
+    '        var pt=new Uint8Array(ab);',
+    '        var nl=0;while(nl<pt.length&&pt[nl]!==10){nl++;}',
+    '        var meta=JSON.parse(new TextDecoder().decode(pt.subarray(0,nl)));',
+    '        var data=pt.subarray(nl+1);',
+    '        var load=meta.z?decompress(data):Promise.resolve(data);',
+    '        return load.then(function(final){',
+    '          var blob=new Blob([final],{type:meta.t||"application/octet-stream"});',
     '          var a=document.createElement("a");',
     '          var url=URL.createObjectURL(blob);',
-    '          a.href=url; a.download=CONFIG.payload.name||"download";',
+    '          a.href=url; a.download=meta.n||"download";',
     '          document.body.appendChild(a); a.click();',
     '          setTimeout(function(){URL.revokeObjectURL(url); a.remove();},1000);',
     '          note.textContent="Download started. If nothing happened, check your browser download settings.";',
@@ -441,10 +541,10 @@
       : '<p class="lock-text">Enter the password to unlock and download.</p>';
 
     var footer = [];
-    if (o.showLegal) {
+    if (o.showLegal && o.legal.url) {
       footer.push('<a href="' + esc(o.legal.url) + '" target="_blank" rel="noopener">' + esc(o.legal.label) + '</a>');
     }
-    if (o.showPrivacy) {
+    if (o.showPrivacy && o.privacy.url) {
       footer.push('<a href="' + esc(o.privacy.url) + '" target="_blank" rel="noopener">' + esc(o.privacy.label) + '</a>');
     }
     footer.push('<a href="' + esc(LEARN_MORE_URL) + '" target="_blank" rel="noopener">Learn more</a>');
@@ -456,7 +556,9 @@
       '<head>',
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
-      '<title>' + esc(payload.name || 'Protected file') + '</title>',
+      // The title can no longer use the real filename, which is now encrypted
+      // with the file; it falls back to the branding heading instead.
+      '<title>' + esc(o.heading || 'Protected file') + '</title>',
       '<style>',
       OUTPUT_CSS,
       '</style>',
@@ -492,6 +594,29 @@
   mark.src = DEFAULT_LOGO;
   document.getElementById('learnFixed').textContent = 'Learn more destination (fixed): ' + LEARN_MORE_URL;
 
+  // Live strength estimate under the password field; keeps the visibility of
+  // the build-time rules without blocking typing.
+  var pwEl = document.getElementById('password');
+  var pwHint = document.getElementById('pwStrength');
+  function updatePwStrength() {
+    var pw = pwEl.value;
+    if (!pw) { pwHint.textContent = ''; pwHint.className = 'pw-hint'; return; }
+    if (commonPassword(pw)) {
+      pwHint.textContent = 'This is a known common password - the builder will reject it.';
+      pwHint.className = 'pw-hint weak'; return;
+    }
+    var bits = estimateBits(pw);
+    if (pw.length < MIN_PASSWORD_LEN || bits < MIN_PASSWORD_BITS) {
+      pwHint.textContent = 'Estimated ~' + bits + ' bits - below the ' + MIN_PASSWORD_BITS + '-bit minimum (and ' + MIN_PASSWORD_LEN + '+ characters). Mix character types or make it longer.';
+      pwHint.className = 'pw-hint weak';
+    } else {
+      pwHint.textContent = 'Estimated ~' + bits + ' bits - meets the minimum.';
+      pwHint.className = 'pw-hint ok';
+    }
+  }
+  pwEl.addEventListener('input', updatePwStrength);
+  updatePwStrength();
+
   function setWarnings(list) {
     var el = document.getElementById('warnings');
     if (!list.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
@@ -517,24 +642,25 @@
 
     if (!file) { errEl.textContent = 'Choose a file to protect first.'; errEl.style.display = 'block'; return; }
     if (!password) { errEl.textContent = 'Enter a password.'; errEl.style.display = 'block'; return; }
-    if (password.length < 8) {
-      errEl.textContent = 'Use a password of at least 8 characters.';
+    if (password.length < MIN_PASSWORD_LEN) {
+      errEl.textContent = 'Use a password of at least ' + MIN_PASSWORD_LEN + ' characters.';
+      errEl.style.display = 'block'; return;
+    }
+    if (commonPassword(password)) {
+      errEl.textContent = 'That password appears in known-password lists. Choose a unique one.';
+      errEl.style.display = 'block'; return;
+    }
+    var pwBits = estimateBits(password);
+    if (pwBits < MIN_PASSWORD_BITS) {
+      errEl.textContent = 'Password is too weak: estimated ~' + pwBits + ' bits of entropy (minimum ' + MIN_PASSWORD_BITS + '). Mix upper/lowercase, digits, and symbols, or make it longer.';
       errEl.style.display = 'block'; return;
     }
 
-    var warnings = [];
-    var customCss = '';
-    var cssFile = document.getElementById('cssFile').files[0];
-
-    var logoFile = document.getElementById('logoFile').files[0] || null;
-    var lockFile = document.getElementById('lockFile').files[0] || null;
-    var showCustom = document.getElementById('showCustom').checked && !!cssFile;
-
     var o = {
-      c1: document.getElementById('c1').value,
-      c2: document.getElementById('c2').value,
-      c3: document.getElementById('c3').value,
-      bgColor: document.getElementById('bgColor').value,
+      c1: normColor(document.getElementById('c1').value, '#fa396a'),
+      c2: normColor(document.getElementById('c2').value, '#b166b1'),
+      c3: normColor(document.getElementById('c3').value, '#5a9cfa'),
+      bgColor: normColor(document.getElementById('bgColor').value, '#ffffff'),
       heading: document.getElementById('heading').value || 'This file is protected',
       description: document.getElementById('description').value,
       showLogo: document.getElementById('showLogo').checked,
@@ -546,13 +672,34 @@
       showPrivacy: document.getElementById('showPrivacy').checked,
       legal: {
         label: document.getElementById('legalLabel').value || 'Legal',
-        url: document.getElementById('legalUrl').value
+        url: document.getElementById('legalUrl').value.trim()
       },
       privacy: {
         label: document.getElementById('privacyLabel').value || 'Privacy',
-        url: document.getElementById('privacyUrl').value
+        url: document.getElementById('privacyUrl').value.trim()
       }
     };
+
+    if (o.showLegal && o.legal.url && !validHttpUrl(o.legal.url)) {
+      errEl.textContent = 'The Legal URL must start with http:// or https:// and contain no spaces, quotes, or angle brackets.';
+      errEl.style.display = 'block'; return;
+    }
+    if (o.showPrivacy && o.privacy.url && !validHttpUrl(o.privacy.url)) {
+      errEl.textContent = 'The Privacy URL must start with http:// or https:// and contain no spaces, quotes, or angle brackets.';
+      errEl.style.display = 'block'; return;
+    }
+    if (!validHttpUrl(LEARN_MORE_URL)) {
+      errEl.textContent = 'The fixed Learn-more URL (LEARN_MORE_URL, injected at deploy time) is not a valid http(s) URL.';
+      errEl.style.display = 'block'; return;
+    }
+
+    var warnings = [];
+    var customCss = '';
+    var cssFile = document.getElementById('cssFile').files[0];
+
+    var logoFile = document.getElementById('logoFile').files[0] || null;
+    var lockFile = document.getElementById('lockFile').files[0] || null;
+    var showCustom = document.getElementById('showCustom').checked && !!cssFile;
 
     btn.disabled = true;
     btn.textContent = 'Building...';
@@ -576,14 +723,7 @@
       setWarnings(warnings);
       return encryptFile(file, password);
     }).then(function (payload) {
-      var html = makeOutput(o, {
-        salt: payload.salt,
-        iv: payload.iv,
-        ct: payload.ct,
-        z: payload.z,
-        name: file.name,
-        type: file.type
-      });
+      var html = makeOutput(o, payload);
       var a = document.createElement('a');
       var url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
       a.href = url;

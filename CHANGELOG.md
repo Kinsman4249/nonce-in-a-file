@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Encrypts the original filename and MIME type inside the payload alongside the document instead of shipping them as cleartext metadata, so a generated file no longer reveals what the document is called (e.g. `Layoffs_Draft_Q3.docx`) to anyone holding it without the password.
+- Sanitizes uploaded custom CSS before inlining: every `<` character is removed (CSS has no use for it), so an uploaded stylesheet can no longer close the `<style>` tag early and inject markup or script into a generated file. External requests (`@import`, `url(http...)`) were already stripped for offline use.
+- Validates footer link URLs (Legal, Privacy, and the fixed Learn-more link) at build time: they must be `http://` or `https://` with no spaces, quotes, or angle brackets, so a `javascript:` value can never reach an `href`.
+- Enforces a stronger password policy: at least 12 characters, an estimated-entropy floor of ~64 bits, and rejection of a built-in list of well-known passwords. The builder shows a live strength estimate under the password field.
+
+### Fixed
+
+- Fixed an HTML injection vulnerability (XSS) in generated files: a crafted CSS upload containing `</style><script>...` could close the inline style block early and execute a live script in the recipient's browser before the password was entered.
+
 ## [1.1.0] - 2026-09-03
 
 ### Added
