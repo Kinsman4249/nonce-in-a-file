@@ -9,12 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Added `builder/index.html`, the client-side protected-file builder. It reads a user file and password, derives a key via PBKDF2-HMAC-SHA256 (600,000 iterations) and encrypts with AES-256-GCM using only the browser's native Web Crypto API, then generates a single self-contained, self-decrypting HTML file for download. Every branding element (logo, banner/colors, heading, description, lock icon, legal/privacy/learn-more buttons, custom CSS) has an independent per-build on/off toggle. Nothing is uploaded at any point.
-- Added the generated output-file template inside `builder/index.html` (the decrypt-and-download page Part 2 describes). It contains only decryption logic and an off-line, branding-aware locked screen; there is no encryption code path in the artifact. All parameters (ciphertext, salt, IV, filename, mime type, branded assets, theme, link labels/URLs) are baked in at generation time.
-- Added `.github/workflows/deploy-builder.yml`, a Cloudflare Pages CI workflow for the builder using `cloudflare/wrangler-action@v4`, running on every push to `main` instead of on a version tag, authenticated via repository secrets. It is kept separate from `release.yml`.
-- Added `LICENSE` (Business Source License 1.1) with a Change Date of 2030-09-03 and a change to Apache License 2.0.
-- Rewrote `README.md` into real project documentation: artifact overview, security model, usage, Cloudflare Pages deployment, and plain-step instructions for creating the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets in GitHub.
-
 ### Changed
 
 ### Deprecated
@@ -24,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 ### Security
+
+## [1.0.0] - 2026-09-03
+
+### Added
+
+- Added `builder/index.html`, the client-side protected-file builder. It reads a user file and password, derives a key via PBKDF2-HMAC-SHA256 (600,000 iterations) and encrypts with AES-256-GCM using only the browser's native Web Crypto API, then generates a single self-contained, self-decrypting HTML file for download. Every branding element (logo, banner/colors, heading, description, lock icon, legal/privacy/learn-more buttons, custom CSS) has an independent per-build on/off toggle. Nothing is uploaded at any point.
+- Added the generated output-file template inside `builder/index.html` (the decrypt-and-download page Part 2 describes). It contains only decryption logic and an off-line, branding-aware locked screen; there is no encryption code path in the artifact. All parameters (ciphertext, salt, IV, filename, mime type, branded assets, theme, link labels/URLs) are baked in at generation time.
+- Added `.github/workflows/deploy-builder.yml`, a Cloudflare Pages CI workflow for the builder using `cloudflare/wrangler-action@v4`, running on every push to `main` instead of on a version tag, authenticated via repository secrets. It is kept separate from `release.yml`.
+- Added `LICENSE` (Business Source License 1.1) with a Change Date of 2030-09-03 and a change to Apache License 2.0.
+- Rewrote `README.md` into real project documentation: artifact overview, security model, usage, Cloudflare Pages deployment, and plain-step instructions for creating the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets in GitHub.
 
 ## [2.0.0] - 2026-08-05
 
