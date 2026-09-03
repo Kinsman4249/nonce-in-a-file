@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-03
+
 ### Added
 
 - Added an optional public-key mode: encrypt to a recipient's ECDH P-256 public key instead of a password, so a sender never transmits the secret out of band. The builder ships an ephemeral key pair per recipient and wraps the data key under the shared secret; the built file's unlock page accepts a private key to recover it.
@@ -16,11 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Sanitizes uploaded custom CSS before inlining: every `<` character is removed (CSS has no use for it), so an uploaded stylesheet can no longer close the `<style>` tag early and inject markup or script into a generated file. External requests (`@import`, `url(http...)`) were already stripped for offline use.
 - Validates footer link URLs (Legal, Privacy, and the fixed Learn-more link) at build time: they must be `http://` or `https://` with no spaces, quotes, or angle brackets, so a `javascript:` value can never reach an `href`.
 - Enforces a stronger password policy: at least 12 characters, an estimated-entropy floor of ~64 bits, and rejection of a built-in list of well-known passwords. The builder shows a live strength estimate under the password field.
+- Added a random strong-password generator (drawn with `crypto.getRandomValues` from a mixed 20-character pool, roughly 120 bits) with a copy-to-clipboard button; it pre-fills both the password and its confirmation.
+- Added drag and drop: dropping files onto the File card selects them.
+- Added a multi-file bundle mode: select several files to produce one protected file that, once unlocked, renders a file list with a per-file download button plus a "Download all" action. Bundles raise the format version to 4 and carry the manifest encrypted inside the envelope; a single-file build still uses the v3-style header so existing recipients open it unchanged.
+- Added a secret/note mode: protect a pasted written message instead of choosing a file; it is bundled as a `text/plain` document named `note.txt`.
+- Added an opt-in local ECDH address book kept only in the browser: save, import, and export public keys and add a saved public key as a recipient. It stores public material only and never leaves the device except through an explicit export download.
+- Added progress feedback during a build: an indeterminate bar with an elapsed-seconds readout and a note that compression and Argon2id can take a moment on large files.
 - Planned (not yet built): an auto-protect workflow - like SafeGuard's Outlook add-in that auto-detects external attachments and offers to password-protect them - as a natural integration for a Gmail / Outlook Online production build, so a sender never ships an unencrypted attachment by accident.
-
-### Fixed
-
-- Fixed an HTML injection vulnerability (XSS) in generated files: a crafted CSS upload containing `</style><script>...` could close the inline style block early and execute a live script in the recipient's browser before the password was entered.
+- Planned (not yet built): a multi-language UI (English plus German/Spanish/French for the builder and generated files), a plaintext SHA-256 fingerprint shown on the unlock page, a printable handout, browser "Send via Web Share" for the generated file, and an optional CLI wrapper artifact.
+- Planned (not yet built), cloud-infra roadmap: Outlook (Microsoft 365) Office.js and Gmail integrations, hosted share links with expiry/revocation and burn-after-read, recovery-key escrow and emergency access, unlock links via email or SMS, access and read-receipt logging, and accounts with cross-device keyring sync.
+- Planned (not yet built): an optional, off-by-default ad-supported build mode. When enabled at build time it adds a distinctly styled sponsor region that requires an external network tag, so it is never on by default and is documented in `PRIVACY.md` as the one case where a protected page can make a background request.
 
 ### Changed
 
@@ -30,6 +37,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added a key-commitment step to every recipient wrap: each wrapped key ships a SHA-256 commitment over the recipient's commit key and the wrapped bytes, verified constant-time before unwrap. This closes the partition-oracle / key-commitment gap that matters now that one file can have several recipients (passwords and ECDH).
 - Padded the compressed plaintext envelope to 4 KiB buckets with random bytes before encryption, so ciphertext length reveals only a coarse size range rather than exactly how compressible the file was.
 - The Business Source License's Change License clause now converts to GPL-3.0-only after the Change Date instead of Apache License 2.0.
+- The builder now round-trips every build through the decrypt-side primitives before offering a download and aborts with an explicit "internal verification failed" message if any recipient cannot recover the plaintext, so a regression in envelope padding, the compression flag, wrap layout, or the format is caught at authoring time rather than in the recipient's browser.
+- The embedded decryptor now distinguishes a corrupted or modified file from a wrong secret: when a recipient's key-commitment matches but the content decrypt fails, it reports that the file appears corrupted or was modified instead of blaming the password or private key.
+- The embedded decryptor now hard-caps attacker-controllable KDF parameters (Argon2id time <= 16, memory <= 256 MiB, parallelism <= 4; PBKDF2 iterations <= 8,000,000 with the hash pinned to SHA-256) and requires the 64-byte wrap/commit hashLen, so a crafted file can no longer freeze the tab or corrupt the commitment key; out-of-range recipient entries are skipped.
+- The optional ECDSA signature now covers the IV concatenated with the ciphertext rather than the ciphertext alone, so a corrupted IV reads as a signature failure instead of a bogus "verified" badge followed by a failed decrypt.
+- Added a password confirmation field, applied the same entropy and common-list policy to extra password recipients (plus a 1024-character cap for every password), deduplicated identical password recipients so Argon2id is never run twice on the same secret, and capped the recipient ring at 50 entries.
+- Importing an ECDH public key now validates the base64 transport and the key shape up front and reports a readable reason (not valid base64, wrong key length, not a P-256 public key) instead of a bare Web Crypto error.
+- The inline Argon2id bundle in generated files now escapes any `</script` into `<\/script`, so a future vendor bundle can never prematurely close the script tag and break an output file.
+
+### Fixed
+
+- Fixed an HTML injection vulnerability (XSS) in generated files: a crafted CSS upload containing `</style><script>...` could close the inline style block early and execute a live script in the recipient's browser before the password was entered.
+- Fixed an off-by-one in the 4 KiB envelope bucket padding: when the padding count crossed a digit boundary (10/100/1000), the final envelope could land one byte off a bucket boundary and leak the exact length mod 4096. Padding is now computed to a fixpoint and the builder asserts the total lands exactly on a bucket boundary.
 
 ## [1.1.0] - 2026-09-03
 
