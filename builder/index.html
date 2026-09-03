@@ -108,58 +108,57 @@
       <button type="button" id="copyPw" class="mini">Copy password</button>
     </div>
   </section>
-<section class="card collapsible collapsed">
+  <section class="card collapsible collapsed">
     <button type="button" class="card-head" aria-expanded="false">
       <span class="caret" aria-hidden="true"></span>
       <h2>Branding</h2>
     </button>
     <div class="card-body">
-    <p class="sub">Every visible element can be toggled on or off for this build, and colors/text default to the project theme.</p>
+      <p class="sub">Every visible element can be toggled on or off for this build, and colors/text default to the project theme.</p>
 
-    <label class="toggle"><input type="checkbox" id="showLogo" checked> Logo</label>
-    <div class="field">
-      <label for="logoFile">Logo image (optional; falls back to the default mark)</label>
-      <input type="file" id="logoFile" accept="image/*">
-    </div>
+      <label class="toggle"><input type="checkbox" id="showLogo" checked> Logo</label>
+      <div class="field">
+        <label for="logoFile">Logo image (optional; falls back to the default mark)</label>
+        <input type="file" id="logoFile" accept="image/*">
+      </div>
 
-    <label class="toggle"><input type="checkbox" id="showBanner" checked> Banner / gradient background</label>
-    <div class="row">
-      <div class="field"><label>Gradient start</label><input type="color" id="c1" value="#fa396a"></div>
-      <div class="field"><label>Gradient middle</label><input type="color" id="c2" value="#b166b1"></div>
-      <div class="field"><label>Gradient end</label><input type="color" id="c3" value="#5a9cfa"></div>
-      <div class="field"><label>Page background</label><input type="color" id="bgColor" value="#ffffff"></div>
-    </div>
+      <label class="toggle"><input type="checkbox" id="showBanner" checked> Banner / gradient background</label>
+      <div class="row">
+        <div class="field"><label>Gradient start</label><input type="color" id="c1" value="#fa396a"></div>
+        <div class="field"><label>Gradient middle</label><input type="color" id="c2" value="#b166b1"></div>
+        <div class="field"><label>Gradient end</label><input type="color" id="c3" value="#5a9cfa"></div>
+        <div class="field"><label>Page background</label><input type="color" id="bgColor" value="#ffffff"></div>
+      </div>
 
-    <label class="toggle"><input type="checkbox" id="showHeading" checked> Heading</label>
-    <div class="field">
-      <label for="heading">Heading text</label>
-      <input type="text" id="heading" value="This file is protected">
-    </div>
+      <label class="toggle"><input type="checkbox" id="showHeading" checked> Heading</label>
+      <div class="field">
+        <label for="heading">Heading text</label>
+        <input type="text" id="heading" value="This file is protected">
+      </div>
 
-    <label class="toggle"><input type="checkbox" id="showDesc" checked> Description paragraph</label>
-    <div class="field">
-      <label for="description">Description</label>
-      <textarea id="description">Enter the password below to unlock and download this file. It is encrypted and safe to share publicly.</textarea>
-    </div>
+      <label class="toggle"><input type="checkbox" id="showDesc" checked> Description paragraph</label>
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description">Enter the password below to unlock and download this file. It is encrypted and safe to share publicly.</textarea>
+      </div>
 
-    <label class="toggle"><input type="checkbox" id="showLock" checked> Lock icon</label>
-    <div class="field">
-      <label for="lockFile">Lock icon image (optional; falls back to the default icon). Turn off for a text-only password prompt.</label>
-      <input type="file" id="lockFile" accept="image/*">
+      <label class="toggle"><input type="checkbox" id="showLock" checked> Lock icon</label>
+      <div class="field">
+        <label for="lockFile">Lock icon image (optional; falls back to the default icon). Turn off for a text-only password prompt.</label>
+        <input type="file" id="lockFile" accept="image/*">
+      </div>
     </div>
-    </div>
-  </section
-<section class="card collapsible collapsed">
+  </section>
+  <section class="card collapsible collapsed">
     <button type="button" class="card-head" aria-expanded="false">
       <span class="caret" aria-hidden="true"></span>
       <h2>Links</h2>
     </button>
     <div class="card-body">
-    <p class="sub">Legal, privacy, and learn-more buttons. These are fixed to this deployment and cannot be changed here; every generated file always includes all three, and each opens in a new tab when a visitor clicks it.</p>
-    <div class="fixed" id="fixedLinks"></div>
+      <p class="sub">Legal, privacy, and learn-more buttons. These are fixed to this deployment and cannot be changed here; every generated file always includes all three, and each opens in a new tab when a visitor clicks it.</p>
+      <div class="fixed" id="fixedLinks"></div>
     </div>
-  </section
-
+  </section>
 
   <section class="card collapsible collapsed">
     <button type="button" class="card-head" aria-expanded="false">
@@ -167,41 +166,41 @@
       <h2>Recipients / key ring (optional)</h2>
     </button>
     <div class="card-body">
-    <p class="sub">Encrypt one file to several recipients at once. The ciphertext is wrapped once per recipient, so the built file opens for any of them. You can mix passwords and public keys. This is what lets you send a file to someone's key instead of a password over chat.</p>
-    <div class="field">
-      <label for="kdfScheme">Key derivation for password recipients</label>
-      <select id="kdfScheme">
-        <option value="argon2id">Argon2id (recommended - GPU/ASIC-resistant)</option>
-        <option value="pbkdf2">PBKDF2-HMAC-SHA256 (FIPS/compat mode)</option>
-      </select>
-      <p class="hint">The file's password can be cracked offline, so the default Argon2id is the strongest protection. Choose the PBKDF2 mode only when a FIPS-listed KDF is required; it is still 600,000-iteration HMAC-SHA256 with the same key-commitment.</p>
-    </div>
-    <div id="recipientsList"></div>
-    <div class="row">
-      <button type="button" id="addPwRec" class="mini">Add a password recipient</button>
-      <button type="button" id="addKeyRec" class="mini">Add a public-key (ECDH) recipient</button>
-    </div>
-    <div class="field keysub">
-      <label for="genEcdh">Key tool: generate a recipient key pair</label>
-      <p class="hint">Create a public/private pair to hand to someone else. Share the public key, and they encrypt to it; the recipient keeps the private key and pastes it into the built file to unlock.</p>
-      <button type="button" id="genEcdh" class="mini">Generate ECDH key pair</button>
-      <textarea id="ecdPub" readonly placeholder="Public key (base64) - share this"></textarea>
-      <textarea id="ecdPriv" readonly placeholder="Private key (base64) - keep secret; recipients paste this to unlock"></textarea>
-    </div>
-    <div class="field keysub">
-      <label>Local ECDH address book (opt-in, stored in this browser only; never leaves your device)</label>
-      <p class="hint">Reuse public keys you have already generated or imported without copying them by hand. Public keys are public material. Nothing is written to your device unless you click Save or Import.</p>
+      <p class="sub">Encrypt one file to several recipients at once. The ciphertext is wrapped once per recipient, so the built file opens for any of them. You can mix passwords and public keys. This is what lets you send a file to someone's key instead of a password over chat.</p>
+      <div class="field">
+        <label for="kdfScheme">Key derivation for password recipients</label>
+        <select id="kdfScheme">
+          <option value="argon2id">Argon2id (recommended - GPU/ASIC-resistant)</option>
+          <option value="pbkdf2">PBKDF2-HMAC-SHA256 (FIPS/compat mode)</option>
+        </select>
+        <p class="hint">The file's password can be cracked offline, so the default Argon2id is the strongest protection. Choose the PBKDF2 mode only when a FIPS-listed KDF is required; it is still 600,000-iteration HMAC-SHA256 with the same key-commitment.</p>
+      </div>
+      <div id="recipientsList"></div>
       <div class="row">
-        <select id="keyringList"><option value="">Saved public keys...</option></select>
-        <button type="button" id="keyringUse" class="mini">Add saved key as recipient</button>
+        <button type="button" id="addPwRec" class="mini">Add a password recipient</button>
+        <button type="button" id="addKeyRec" class="mini">Add a public-key (ECDH) recipient</button>
       </div>
-      <div class="minirow">
-        <button type="button" id="keyringSave" class="mini">Save above public key</button>
-        <button type="button" id="keyringExport" class="mini">Export keyring JSON</button>
-        <label class="mini" for="keyringImport">Import keyring JSON</label>
-        <input type="file" id="keyringImport" accept=".json,application/json" style="display:none">
+      <div class="field keysub">
+        <label for="genEcdh">Key tool: generate a recipient key pair</label>
+        <p class="hint">Create a public/private pair to hand to someone else. Share the public key, and they encrypt to it; the recipient keeps the private key and pastes it into the built file to unlock.</p>
+        <button type="button" id="genEcdh" class="mini">Generate ECDH key pair</button>
+        <textarea id="ecdPub" readonly placeholder="Public key (base64) - share this"></textarea>
+        <textarea id="ecdPriv" readonly placeholder="Private key (base64) - keep secret; recipients paste this to unlock"></textarea>
       </div>
-    </div>
+      <div class="field keysub">
+        <label>Local ECDH address book (opt-in, stored in this browser only; never leaves your device)</label>
+        <p class="hint">Reuse public keys you have already generated or imported without copying them by hand. Public keys are public material. Nothing is written to your device unless you click Save or Import.</p>
+        <div class="row">
+          <select id="keyringList"><option value="">Saved public keys...</option></select>
+          <button type="button" id="keyringUse" class="mini">Add saved key as recipient</button>
+        </div>
+        <div class="minirow">
+          <button type="button" id="keyringSave" class="mini">Save above public key</button>
+          <button type="button" id="keyringExport" class="mini">Export keyring JSON</button>
+          <label class="mini" for="keyringImport">Import keyring JSON</label>
+          <input type="file" id="keyringImport" accept=".json,application/json" style="display:none">
+        </div>
+      </div>
     </div>
   </section>
 
@@ -211,24 +210,20 @@
       <h2>Signing (optional)</h2>
     </button>
     <div class="card-body">
-    <p class="sub">Sign the ciphertext with an ECDSA P-256 key so a recipient can verify the file came from you and was not altered. The public key travels inside the built file; the decryptor verifies the detached signature and shows a verified badge.</p>
-    <label class="toggle"><input type="checkbox" id="enableSign"> Sign this file</label>
-    <div class="field">
-      <label for="signerLabel">Signer display name</label>
-      <input type="text" id="signerLabel" placeholder="e.g. Acme HR">
-    </div>
-    <div class="field">
-      <label for="signPriv">Signing private key (ECDSA P-256, base64 or PEM)</label>
-      <textarea id="signPriv" placeholder="Leave blank to generate a fresh signing key for this build."></textarea>
-      <p class="hint">Keep the private key. Recipients only learn its public half (embedded in each signed file).</p>
-    </div>
-    <button type="button" id="genSign" class="mini">Generate a signing private key</button>
+      <p class="sub">Sign the ciphertext with an ECDSA P-256 key so a recipient can verify the file came from you and was not altered. The public key travels inside the built file; the decryptor verifies the detached signature and shows a verified badge.</p>
+      <label class="toggle"><input type="checkbox" id="enableSign"> Sign this file</label>
+      <div class="field">
+        <label for="signerLabel">Signer display name</label>
+        <input type="text" id="signerLabel" placeholder="e.g. Acme HR">
+      </div>
+      <div class="field">
+        <label for="signPriv">Signing private key (ECDSA P-256, base64 or PEM)</label>
+        <textarea id="signPriv" placeholder="Leave blank to generate a fresh signing key for this build."></textarea>
+        <p class="hint">Keep the private key. Recipients only learn its public half (embedded in each signed file).</p>
+      </div>
+      <button type="button" id="genSign" class="mini">Generate a signing private key</button>
     </div>
   </section>
-
-  >
-
-  >
 
   <section class="card collapsible collapsed">
     <button type="button" class="card-head" aria-expanded="false">
@@ -236,13 +231,13 @@
       <h2>Custom CSS</h2>
     </button>
     <div class="card-body">
-    <p class="sub">Optional extra stylesheet, inlined into the output after the built-in theme so it can override it. External requests are stripped so the file stays self-contained and works offline.</p>
-    <label class="toggle"><input type="checkbox" id="showCustom" checked> Apply custom CSS</label>
-    <div class="field">
-      <label for="cssFile">CSS file (optional)</label>
-      <input type="file" id="cssFile" accept=".css,text/css">
-    </div>
-    <div class="warnings" id="warnings"></div>
+      <p class="sub">Optional extra stylesheet, inlined into the output after the built-in theme so it can override it. External requests are stripped so the file stays self-contained and works offline.</p>
+      <label class="toggle"><input type="checkbox" id="showCustom" checked> Apply custom CSS</label>
+      <div class="field">
+        <label for="cssFile">CSS file (optional)</label>
+        <input type="file" id="cssFile" accept=".css,text/css">
+      </div>
+      <div class="warnings" id="warnings"></div>
     </div>
   </section>
 
@@ -1215,7 +1210,6 @@
     '#files li span{word-break:break-all}',
     '#files li button, #files>button{margin:0;padding:9px 16px;border:0;border-radius:8px;background:#5a9cfa;color:#fff;font-weight:700;cursor:pointer;font-size:14px}',
     '#files>button{margin-top:14px;width:100%}',
-    '#files li button, #files>button{margin:0;padding:9px 16px;border:0;border-radius:8px;background:#5a9cfa;color:#fff;font-weight:700;cursor:pointer;font-size:14px}',
     '.share{margin-top:28px;text-align:center}',
     'button.sharelink{background:none;border:0;padding:0;margin:0;color:#5a9cfa;font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline}',
     'button.sharelink:hover{text-decoration:none}',

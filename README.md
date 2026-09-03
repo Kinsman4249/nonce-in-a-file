@@ -157,7 +157,9 @@ disk), it shows a collapsed "Share this file" toggle beneath the lock. Opening
 it renders a QR code of that page's URL, generated fully offline and embedded
 inline as SVG (no network, no external service), so a phone can scan it to
 open the file. The share toggle is hidden entirely for `file://` views, where
-there is no shareable URL.
+there is no shareable URL. The QR encodes `location.href` as-is, so never host
+a file at a URL that carries a token, query parameter, or other secret - the
+QR exposes whatever is in the address bar.
 
 Generated files reconstruct a download in-browser (JavaScript Blob + download
 attribute). This matches MITRE ATT&CK T1027.006 and will be flagged/quarantined
