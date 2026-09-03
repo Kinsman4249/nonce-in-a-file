@@ -211,8 +211,7 @@ which runs on every push to `main`, not on tags.
 Licensed under the Business Source License 1.1. See [LICENSE](LICENSE). Before
 the Change Date, the work is free to use, modify, and redistribute except as a
 paid, hosted service to third parties; after the Change Date it becomes
-GPL-3.0-only. Source code is at
-<REPO_URL>/blob/main/LICENSE.
+GPL-3.0-only.
 
 ## Community
 
