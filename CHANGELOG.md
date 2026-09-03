@@ -7,39 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-09-03
+
+### Added
+
+- The builder now shows a live banner preview at the top of the page that
+  reflects the Branding card's gradient colour inputs and its show toggle,
+  rendering exactly the banner the protected file will embed.
+
+### Changed
+
+- The Branding card now defaults to expanded instead of collapsed.
+
 ### Fixed
 
-- The three inline scripts a generated file embeds (Argon2id, the QR encoder,
-  and the decryptor runtime) are now marked `data-cfasync="false"` so
-  Cloudflare Rocket Loader leaves them untouched. Rocket Loader was deferring
-  and retyping them (rewriting their `type` to a mangled
-  `*-text/javascript`), and because the file's CSP blocks Rocket Loader's own
-  loader script those deferred scripts never ran - the decryptor stayed inert
-  and the "Share this file" QR never rendered, even over https.
-- The builder's inline script is no longer broken when a deploy-time value from
-  a GitHub Actions variable contains an apostrophe or other quote. A value such
-  as a `BUILDER_TITLE` of `Ethan Antonio's File Encrypter` was injected
-  single-quoted unescaped, producing invalid JS (`Unexpected identifier 's'`)
-  that killed the entire script - so the top-left logo, tab title, and
-  collapsible cards all silently stopped working. Injected values are now
-  JSON-encoded (and `<` is escaped) so any value stays valid. The script tag
-  is also marked `data-cfasync="false"` so Cloudflare Rocket Loader leaves the
-  large inline builder script untouched.
-- The top-left `LOGO_URL` logo no longer silently falls back to the grey
-  padlock in generated files when the logo host does not send an
-  `Access-Control-Allow-Origin` header. The deploy workflow now downloads the
-  logo in the runner and injects it into `LOGO_URL` as a fully self-contained
-  data URI, so the builder embeds it directly and no browser-side cross-origin
-  fetch is needed; any publicly reachable logo URL (for example an Odoo
-  `/web/image` endpoint) now works. If the download fails during deploy, the
-  build keeps the padlock and emits a warning.
-
-### Planned (not yet built)
-
-- Email integrations: an Outlook (Microsoft 365) Office.js add-in ("Protect attachments" task-pane that runs the builder logic client-side, swaps the attachment for the self-decrypting `.html`, and stamps an internet header such as `X-NonceInAFile-V`, wired to `OnMessageSend` auto-protect and `OnMessageDecrypt` for add-in-equipped recipients), a Gmail path (Chrome/Edge extension content-script button or a Google Workspace add-on via Apps Script), and local auto-protect heuristics that offer to protect before send when an attachment filename looks sensitive (confidential, salary, ssn, pan, draft). Deciding "attachment vs hosted link" requires the cloud-infra bucket.
-- Cloud-infra roadmap: recovery-key escrow and emergency access (needs accounts, server key management, storage); hosted share links (a site-side counter Worker plus Pages-hosted outputs with expiry/revocation, max-open / burn-after-read, manual burn, download receipts, email notifications); email delivery of unlock links with read receipts and audit logs; one-time unlock codes over email/SMS with no password out of band; server-side rate limiting and abuse controls, download counting, optional geofencing and a WebAuthn bot-shield on the hosted unlock page; and accounts with cross-device keyring sync.
-- An optional, off-by-default ad-supported build mode. When enabled at build time it adds a distinctly styled "Sponsor" region; ads never appear in decrypted content, the mode requires an external network tag so it must stay opt-in and be documented in `PRIVACY.md`, and it needs an ad-slot and provider decision before any implementation.
-- A multi-language UI (English plus German/Spanish/French for the builder and generated files), a plaintext SHA-256 fingerprint shown on the unlock page, a printable handout, browser "Send via Web Share" for the generated file, and an optional CLI wrapper artifact.
+- Generated files mark their three inline scripts (Argon2id, the QR encoder,
+  and the decryptor runtime) with `data-cfasync="false"` so Cloudflare Rocket
+  Loader leaves them untouched. Rocket Loader was retyping and deferring them,
+  and the file's CSP blocked its own loader script, so the decryptor and the
+  "Share this file" QR never ran over https.
+- Deploy-injected values (`BUILDER_TITLE`, `LOGO_URL`, `LEARN_MORE_URL`,
+  `LEGAL_URL`, `PRIVACY_URL`) are now JSON-encoded, so a value containing an
+  apostrophe or other quote no longer produces invalid JS that silently kills
+  the whole builder script.
+- The deploy workflow now downloads `LOGO_URL` in the runner and injects it as
+  a self-contained data URI, so the logo renders even when its host sends no
+  `Access-Control-Allow-Origin` header; if the download fails, the build keeps
+  the default padlock and emits a warning.
+- The "Share this file" QR panel now collapses correctly when hidden instead of
+  remaining visible.
 
 ## [1.4.0] - 2026-09-03
 
