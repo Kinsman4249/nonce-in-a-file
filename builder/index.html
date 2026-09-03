@@ -14,6 +14,8 @@
   header.top .mark{width:34px;height:34px}
   h1{font-size:24px;font-weight:800;margin:0;color:#292d2f}
   .tagline{color:#6b7280;font-size:14px;margin:0 0 28px}
+  .preview{position:relative;height:56px;border-radius:12px;margin-bottom:20px;border:1px solid #e5e7eb;overflow:hidden}
+  .preview .preview-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.9);border-radius:6px;padding:4px 10px;font-size:12px;color:#6b7280;font-weight:600;pointer-events:none;letter-spacing:.3px}
   .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
   .card h2{font-size:16px;font-weight:700;margin:0 0 4px}
   .card .sub{font-size:13px;color:#6b7280;margin:0 0 18px}
@@ -79,6 +81,8 @@
   </header>
   <p class="tagline">Pick a file and a password; this page produces a single self-contained HTML file that decrypts and downloads it. Everything runs in your browser - nothing you enter is ever uploaded.</p>
 
+  <div class="preview" id="bannerPreview" title="Live preview of your banner / gradient"><span class="preview-hint">Banner preview</span></div>
+
   <section class="card" id="fileCard">
     <h2>File (or secret message)</h2>
     <p class="sub">The document(s) to encrypt: pick one or more files, or protect a written message. You can also drop files onto this card.</p>
@@ -108,8 +112,8 @@
       <button type="button" id="copyPw" class="mini">Copy password</button>
     </div>
   </section>
-  <section class="card collapsible collapsed">
-    <button type="button" class="card-head" aria-expanded="false">
+  <section class="card collapsible">
+    <button type="button" class="card-head" aria-expanded="true">
       <span class="caret" aria-hidden="true"></span>
       <h2>Branding</h2>
     </button>
@@ -1680,6 +1684,34 @@
         });
       })(heads[h]);
     }
+  })();
+
+  // Live banner preview: reflect the branding section's gradient and its show
+  // toggle at the top of the page. The same three color inputs feed the banner
+  // that makeOutput embeds in the protected file, so this is an exact preview.
+  (function () {
+    var c1 = document.getElementById('c1');
+    var c2 = document.getElementById('c2');
+    var c3 = document.getElementById('c3');
+    var showBanner = document.getElementById('showBanner');
+    var prev = document.getElementById('bannerPreview');
+    if (!c1 || !c2 || !c3 || !showBanner || !prev) { return; }
+
+    function update() {
+      var on = showBanner.checked;
+      prev.style.display = on ? '' : 'none';
+      if (!on) { return; }
+      prev.style.background =
+        'linear-gradient(90deg,' + normColor(c1.value, '#fa396a') + ',' +
+        normColor(c2.value, '#b166b1') + ',' + normColor(c3.value, '#5a9cfa') + ')';
+    }
+
+    [c1, c2, c3].forEach(function (el) {
+      el.addEventListener('input', update);
+      el.addEventListener('change', update);
+    });
+    showBanner.addEventListener('change', update);
+    update();
   })();
 
   document.getElementById('fixedLinks').innerHTML =
