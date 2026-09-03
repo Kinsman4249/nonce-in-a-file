@@ -24,16 +24,35 @@ double-clicked from local disk.
 
 ## How it works (security model)
 
-- Key derivation: PBKDF2-HMAC-SHA256 with 600,000 iterations (the iteration
-  count OWASP's Password Storage Cheat Sheet recommends) and a fresh random
-  16-byte salt per file.
+- Key derivation: Argon2id by default (3 passes, 64 MiB, 1 lane - a memory-hard
+  KDF that resists the GPU/ASIC offline-cracking that PBKDF2 cannot). Argon2id
+  runs in the browser via the vetted, offline-embedded
+  [argon2-browser](https://www.npmjs.com/package/argon2-browser) WASM bundle,
+  so generated files need no network. A labeled PBKDF2-HMAC-SHA256 (600,000
+  iterations) mode is retained for FIPS/compliance requirements; both derive
+  64 bytes per recipient.
+- Crypto agility: every password recipient records the exact KDF and its
+  parameters (`t`/`m`/`p` for Argon2id, `iters`/`hash` for PBKDF2) in the
+  payload header, and the embedded decryptor reads those values rather than
+  assuming a hardcoded scheme. Raising the work factor or switching KDF later
+  never breaks previously generated files. Files carry a format version
+  (`"v": 3`).
+- Key commitment: each wrapped copy of the data key ships with a commitment
+  tag (SHA-256 of the recipient's commit key + the wrapped key). A recipient
+  only proceeds if the tag they recompute from their own key matches, which
+  defeats the AES-GCM partition oracle when a file has several recipients
+  (the ECDH public-key path derives the same wrap+commit keys from an HKDF
+  expansion of the shared secret).
 - Encryption: AES-256-GCM (authenticated encryption, so tampering is detected)
   with a fresh random 12-byte nonce per file.
 - Compression: plaintext is gzip-compressed first using the browser's native
   Compression Streams API, then encrypted. Truly incompressible input (like
-  already-compressed media) is stored uncompressed automatically.
-- All cryptography uses the browser's native Web Crypto API. No bundled crypto
-  libraries, no custom cipher or KDF code.
+  already-compressed media) is stored uncompressed automatically. After
+  compression the encrypted envelope is padded to a 4 KiB bucket with random
+  bytes, so the ciphertext length reveals only a coarse size range, never
+  exactly how compressible the file was.
+- All cryptography uses the browser's native Web Crypto API plus a single
+  vendored Argon2id WASM engine. No custom cipher or KDF code.
 - The password is used only in the visitor's browser to derive the key. It is
   never stored or embedded. There is no recovery mechanism, so the owner must
   keep a copy of any password they use.
@@ -67,11 +86,14 @@ committed to the repo. Leave `LOGO_URL` unset (or empty) to keep the padlock.
 2. Choose the file to protect and set a password (the page requires at least 12
    characters, an estimated ~64 bits of entropy, and rejects well-known
    passwords; there is no way to recover it).
-3. Adjust branding as needed. Every element (logo, banner, heading,
+3. Password recipients are derived with Argon2id by default. Only if you need a
+   FIPS-listed KDF, and have no password of your own to derive against, switch
+   the "Key derivation" selector on the recipients card to PBKDF2 mode.
+4. Adjust branding as needed. Every element (logo, banner, heading,
    description, lock icon, legal/privacy buttons, custom CSS) has an
    independent on/off toggle applied at generation time. The Learn more button
    is always included and cannot be turned off.
-4. Click "Build protected file". The page downloads a `.html` file that
+5. Click "Build protected file". The page downloads a `.html` file that
    decrypts and downloads your original when the correct password is entered.
 
 ### Sending or hosting a protected file
@@ -160,7 +182,7 @@ which runs on every push to `main`, not on tags.
 Licensed under the Business Source License 1.1. See [LICENSE](LICENSE). Before
 the Change Date, the work is free to use, modify, and redistribute except as a
 paid, hosted service to third parties; after the Change Date it becomes
-Apache License 2.0. Source code is at
+GPL-3.0-only. Source code is at
 <REPO_URL>/blob/main/LICENSE.
 
 ## Community

@@ -9,14 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added an optional public-key mode: encrypt to a recipient's ECDH P-256 public key instead of a password, so a sender never transmits the secret out of band. The builder ships an ephemeral key pair per recipient and wraps the data key under the shared secret; the built file's unlock page accepts a private key to recover it.
+- Added a recipients / key ring: one encrypted file can carry a per-recipient wrapped copy of the data key, mixing passwords and public keys, so any recipient in the ring can open the same file. The primary password is always recipient 1; extra passwords or public keys are added in a dedicated builder card.
+- Added optional sender authenticity: the builder can sign the ciphertext with an ECDSA P-256 key (provided, or generated per build). The built file embeds the signature and the signer's public key and shows a verified "Signed and verified" badge on load, instead of treating the Learn-more link as provenance. The Learn-more link stays always-on alongside it.
 - Encrypts the original filename and MIME type inside the payload alongside the document instead of shipping them as cleartext metadata, so a generated file no longer reveals what the document is called (e.g. `Layoffs_Draft_Q3.docx`) to anyone holding it without the password.
 - Sanitizes uploaded custom CSS before inlining: every `<` character is removed (CSS has no use for it), so an uploaded stylesheet can no longer close the `<style>` tag early and inject markup or script into a generated file. External requests (`@import`, `url(http...)`) were already stripped for offline use.
 - Validates footer link URLs (Legal, Privacy, and the fixed Learn-more link) at build time: they must be `http://` or `https://` with no spaces, quotes, or angle brackets, so a `javascript:` value can never reach an `href`.
 - Enforces a stronger password policy: at least 12 characters, an estimated-entropy floor of ~64 bits, and rejection of a built-in list of well-known passwords. The builder shows a live strength estimate under the password field.
+- Planned (not yet built): an auto-protect workflow - like SafeGuard's Outlook add-in that auto-detects external attachments and offers to password-protect them - as a natural integration for a Gmail / Outlook Online production build, so a sender never ships an unencrypted attachment by accident.
 
 ### Fixed
 
 - Fixed an HTML injection vulnerability (XSS) in generated files: a crafted CSS upload containing `</style><script>...` could close the inline style block early and execute a live script in the recipient's browser before the password was entered.
+
+### Changed
+
+- Moved password key derivation from PBKDF2-HMAC-SHA256 to Argon2id by default (3 passes, 64 MiB, 1 lane), which resists GPU/ASIC offline cracking far better because it is memory-hard. Argon2id runs in the browser via the vetted, self-contained argon2-browser WASM bundle, embedded inline in every generated file so recipients still need no network.
+- Retained PBKDF2-HMAC-SHA256 (600,000 iterations) as a labeled FIPS/compat mode selectable in the recipient card, for use cases that require a FIPS-listed KDF.
+- Made the payload header crypto-agile: each password recipient now stores its KDF and exact parameters (`t`/`m`/`p` for Argon2id, `iters`/`hash` for PBKDF2), and the embedded decryptor reads those values instead of assuming a hardcoded iteration count. Raising the work factor or switching KDF later no longer silently breaks previously generated files. Payload format version bumped to 3.
+- Added a key-commitment step to every recipient wrap: each wrapped key ships a SHA-256 commitment over the recipient's commit key and the wrapped bytes, verified constant-time before unwrap. This closes the partition-oracle / key-commitment gap that matters now that one file can have several recipients (passwords and ECDH).
+- Padded the compressed plaintext envelope to 4 KiB buckets with random bytes before encryption, so ciphertext length reveals only a coarse size range rather than exactly how compressible the file was.
+- The Business Source License's Change License clause now converts to GPL-3.0-only after the Change Date instead of Apache License 2.0.
 
 ## [1.1.0] - 2026-09-03
 
