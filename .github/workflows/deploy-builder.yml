@@ -31,14 +31,45 @@ jobs:
         with:
           fetch-depth: 1
 
-      # The builder is pure static HTML/CSS/JS with no build step, so its
-      # source directory IS its deployable output. If a bundling/minifying step
-      # is ever added, add it here as a prior step and point the deploy below
-      # at the build output directory instead of `builder/`.
+      # The builder is pure static HTML/CSS/JS with no compile step, so its
+      # source directory is almost its deployable output. The one exception is
+      # the fixed "Learn more" origin: it is injected just-in-time here from the
+      # LEARN_MORE_URL repository variable so the owner can change it without
+      # editing and committing source. We stage a copy (builder-dist, gitignored)
+      # rather than mutating the tracked file, then deploy the staged copy.
+      - name: Stage builder and inject Learn More URL
+        env:
+          LEARN_MORE_URL: ${{ vars.LEARN_MORE_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${LEARN_MORE_URL:-}" ]]; then
+            echo "::error::The LEARN_MORE_URL Actions variable is not set."
+            echo "Set it in Repository > Settings > Secrets and variables > Actions > Variables so every produced file links to a real, trusted origin. This deploy aborts rather than ship a placeholder or an empty destination."
+            exit 1
+          fi
+          rm -rf builder-dist
+          cp -r builder builder-dist
+          node -e "
+            var fs=require('fs');
+            var file=process.argv[1];
+            var url=process.env.LEARN_MORE_URL;
+            var s=fs.readFileSync(file,'utf8');
+            var key='LEARN_MORE_URL = ';
+            var a=s.indexOf(key);
+            var q=String.fromCharCode(39);
+            var b=s.indexOf(q,a)+1;
+            var c=s.indexOf(q,b);
+            if(a<0||b<=0||c<0){ console.error('LEARN_MORE_URL variable not found in '+file); process.exit(1); }
+            if(s.indexOf(url)!==-1){ console.log('LEARN_MORE_URL already '+url+' in staged copy'); }
+            fs.writeFileSync(file,s.slice(0,b)+url+s.slice(c));
+            console.log('Staged builder with LEARN_MORE_URL -> '+url);
+          " builder-dist/index.html
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy . --project-name=nonce-in-a-file-builder
-          workingDirectory: builder
+          workingDirectory: builder-dist

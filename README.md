@@ -36,10 +36,13 @@ double-clicked from local disk.
   keep a copy of any password they use.
 
 The "Learn more" destination baked into every output file is fixed in the
-builder's own source (`LEARN_MORE_URL` in `builder/index.html`). Its label can
-be toggled on or off per build, but its destination can never be overridden by
-any input - this is the single origin a recipient can check to confirm a file
-really came from this project.
+builder (see `LEARN_MORE_URL` in `builder/index.html`). Its value is injected
+at deploy time from the GitHub Actions repository **variable** named
+`LEARN_MORE_URL`, and its label can be toggled on or off per build, but its
+destination can never be overridden by any user input or upload - this is the
+single origin a recipient can check to confirm a file really came from this
+project. To change that origin, edit the `LEARN_MORE_URL` variable; no source
+change or commit is required.
 
 ## Usage
 
@@ -76,12 +79,18 @@ this workflow never touches them and vice versa.
 
 #### Before the first deploy
 
-1. Point the fixed "Learn more" destination at this project's canonical
-   repository. Edit `LEARN_MORE_URL` near the top of `builder/index.html` and
-   commit it. This is the one value every produced file links back to, so set
-   it once and leave it.
+1. Set the fixed "Learn more" origin as a GitHub Actions **variable**:
+   - Repository > Settings > Secrets and variables > Actions > Variables >
+     New repository variable.
+   - Name: `LEARN_MORE_URL`, value: this project's canonical repository URL.
+   - This is a variable, not a secret - it is not sensitive, and a variable
+     makes it trivial to change later without editing or committing source.
+   - The deploy workflow injects it into the deployed builder on every push to
+     `main`. If the variable is missing, the deploy aborts rather than ship a
+     placeholder destination. Set it before the first push.
 
-2. Create a Cloudflare API token with the least privilege needed:
+2. Create a Cloudflare API token (a secret, unlike the variable above) with the
+   least privilege needed:
    - In the Cloudflare dashboard go to My Profile > API Tokens > Create Token,
      choose "Custom token".
    - Permissions: Account > Cloudflare Pages > Edit.

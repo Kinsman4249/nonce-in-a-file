@@ -151,9 +151,16 @@
   // THIS is the single source an output file links back to so a recipient can
   // confirm a protected file really came from this project. It is deliberately
   // NOT exposed as a form field and cannot be overridden by any upload, input,
-  // or config file. Point it at this project's canonical repository before the
-  // builder is deployed, and keep it that way. The per-output toggle only
-  // controls whether the button is shown, never where it goes.
+  // or config file. The per-output toggle only controls whether the button is
+  // shown, never where it goes.
+  //
+  // The value deployed to Cloudflare Pages is overwritten by CI from the
+  // GitHub Actions repository VARIABLE named LEARN_MORE_URL (set it in
+  // Settings > Secrets and variables > Actions > Variables). This committed
+  // string is only the fallback that render if the variable is unset; because
+  // the deploy workflow fails on an unset variable, this placeholder never
+  // ships unless you remove that check. To change the origin a recipient sees,
+  // edit the repository variable - no source change or commit is required.
   // =========================================================================
   var LEARN_MORE_URL = 'https://github.com/PROJECT_OWNER/nonce-in-a-file';
 
