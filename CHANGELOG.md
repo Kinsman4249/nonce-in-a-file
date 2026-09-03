@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Outlook \ Gmail \ Chrome Plugin
 - Message only mode displays in browser.
 - SSO, key escrow, online decryption via Entra, SAML, etc.
+- Ability to disable QR code.
 
 ## [1.5.0] - 2026-09-03
 
