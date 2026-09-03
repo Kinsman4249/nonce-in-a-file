@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nonce in a File - Protected document builder</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+       background:#f4f5f7;color:#292d2f;line-height:1.5}
+  .wrap{max-width:880px;margin:0 auto;padding:32px 20px 80px}
+  header.top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  header.top .mark{width:34px;height:34px}
+  h1{font-size:24px;font-weight:800;margin:0;color:#292d2f}
+  .tagline{color:#6b7280;font-size:14px;margin:0 0 28px}
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
+  .card h2{font-size:16px;font-weight:700;margin:0 0 4px}
+  .card .sub{font-size:13px;color:#6b7280;margin:0 0 18px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+  .field input[type=text],.field input[type=password],.field input[type=url],.field input[type=color],
+  .field textarea,.field select{width:100%;padding:10px 12px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;font-family:inherit}
+  .field input[type=color]{width:64px;height:40px;padding:2px;cursor:pointer}
+  .field input:focus,.field textarea:focus{outline:none;border-color:#b166b1;box-shadow:0 0 0 3px rgba(177,102,177,.15)}
+  .field textarea{min-height:72px;resize:vertical}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .row .field{flex:1;min-width:180px}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#374151;margin-bottom:14px;cursor:pointer;user-select:none}
+  .toggle input{margin:0}
+  .hint{font-size:12px;color:#9ca3af;margin-top:4px}
+  .fixed{font-size:13px;color:#6b7280;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:8px 10px;word-break:break-all;margin-top:6px}
+  .warnings{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:10px 12px;font-size:13px;margin-top:12px;display:none}
+  .warnings ul{margin:6px 0 0;padding-left:18px}
+  .actions{margin-top:8px}
+  .actions button{background:linear-gradient(90deg,#fa396a,#b166b1,#5a9cfa);color:#fff;border:0;border-radius:10px;
+        padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;width:100%}
+  .actions button:hover{filter:brightness(1.06)}
+  .actions button:disabled{opacity:.5;cursor:not-allowed}
+  .note{font-size:13px;color:#0f766e;margin-top:12px;display:none}
+  .error{color:#b91c1c;font-size:13px;margin-top:12px;display:none}
+  code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:12px}
+  .pw-hint{margin:8px 0 0;font-size:12px;color:#6b7280}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <img class="mark" id="topMark" alt="" src="">
+    <h1>Protected document builder</h1>
+  </header>
+  <p class="tagline">Pick a file and a password; this page produces a single self-contained HTML file that decrypts and downloads it. Everything runs in your browser - nothing you enter is ever uploaded.</p>
+
+  <section class="card">
+    <h2>File</h2>
+    <p class="sub">The document to encrypt. One file per output.</p>
+    <div class="field">
+      <label for="file">File to protect</label>
+      <input type="file" id="file" required>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="new-password" required>
+      <p class="pw-hint">Used only in your browser to derive the encryption key. Never stored, never transmitted. There is no way to recover it, so keep a copy somewhere safe.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Branding</h2>
+    <p class="sub">Every visible element can be toggled on or off for this build, and colors/text default to the project theme.</p>
+
+    <label class="toggle"><input type="checkbox" id="showLogo" checked> Logo</label>
+    <div class="field">
+      <label for="logoFile">Logo image (optional; falls back to the default mark)</label>
+      <input type="file" id="logoFile" accept="image/*">
+    </div>
+
+    <label class="toggle"><input type="checkbox" id="showBanner" checked> Banner / gradient background</label>
+    <div class="row">
+      <div class="field"><label>Gradient start</label><input type="color" id="c1" value="#fa396a"></div>
+      <div class="field"><label>Gradient middle</label><input type="color" id="c2" value="#b166b1"></div>
+      <div class="field"><label>Gradient end</label><input type="color" id="c3" value="#5a9cfa"></div>
+      <div class="field"><label>Page background</label><input type="color" id="bgColor" value="#ffffff"></div>
+    </div>
+
+    <label class="toggle"><input type="checkbox" id="showHeading" checked> Heading</label>
+    <div class="field">
+      <label for="heading">Heading text</label>
+      <input type="text" id="heading" value="This file is protected">
+    </div>
+
+    <label class="toggle"><input type="checkbox" id="showDesc" checked> Description paragraph</label>
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description">Enter the password below to unlock and download this file. It is encrypted and safe to share publicly.</textarea>
+    </div>
+
+    <label class="toggle"><input type="checkbox" id="showLock" checked> Lock icon</label>
+    <div class="field">
+      <label for="lockFile">Lock icon image (optional; falls back to the default icon). Turn off for a text-only password prompt.</label>
+      <input type="file" id="lockFile" accept="image/*">
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Links</h2>
+    <p class="sub">Legal, privacy, and learn-more buttons. They open in a new tab when the visitor clicks them.</p>
+
+    <label class="toggle"><input type="checkbox" id="showLegal" checked> Legal button</label>
+    <div class="row">
+      <div class="field"><label>Label</label><input type="text" id="legalLabel" value="Legal"></div>
+      <div class="field"><label>URL</label><input type="url" id="legalUrl" value="https://example.com/legal"></div>
+    </div>
+
+    <label class="toggle"><input type="checkbox" id="showPrivacy" checked> Privacy button</label>
+    <div class="row">
+      <div class="field"><label>Label</label><input type="text" id="privacyLabel" value="Privacy"></div>
+      <div class="field"><label>URL</label><input type="url" id="privacyUrl" value="https://example.com/privacy"></div>
+    </div>
+
+    <label class="toggle"><input type="checkbox" id="showLearn" checked> Learn more button</label>
+    <p class="hint">The visit destination is fixed by this builder and cannot be overridden (see below).</p>
+    <div class="fixed" id="learnFixed"></div>
+  </section>
+
+  <section class="card">
+    <h2>Custom CSS</h2>
+    <p class="sub">Optional extra stylesheet, inlined into the output after the built-in theme so it can override it. External requests are stripped so the file stays self-contained and works offline.</p>
+    <label class="toggle"><input type="checkbox" id="showCustom" checked> Apply custom CSS</label>
+    <div class="field">
+      <label for="cssFile">CSS file (optional)</label>
+      <input type="file" id="cssFile" accept=".css,text/css">
+    </div>
+    <div class="warnings" id="warnings"></div>
+  </section>
+
+  <div class="actions">
+    <button id="generate">Build protected file</button>
+    <p class="note" id="note"></p>
+    <p class="error" id="error"></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // =========================================================================
+  // FIXED "learn more" destination.
+  //
+  // THIS is the single source an output file links back to so a recipient can
+  // confirm a protected file really came from this project. It is deliberately
+  // NOT exposed as a form field and cannot be overridden by any upload, input,
+  // or config file. Point it at this project's canonical repository before the
+  // builder is deployed, and keep it that way. The per-output toggle only
+  // controls whether the button is shown, never where it goes.
+  // =========================================================================
+  var LEARN_MORE_URL = 'https://github.com/PROJECT_OWNER/nonce-in-a-file';
+
+  var ITERATIONS = 600000;   // OWASP recommendation for PBKDF2-HMAC-SHA256
+  var SALT_LEN = 16;
+  var IV_LEN = 12;           // AES-GCM standard nonce size
+
+  // -------------------------------------------------------------------------
+  // Default mark and lock icon (inline SVG data URIs), used when the owner
+  // does not upload their own or disables uploads but keeps the element shown.
+  // -------------------------------------------------------------------------
+  function svgUri(svg) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
+  var DEFAULT_LOGO = svgUri(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>" +
+    "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
+    "<stop offset='0' stop-color='#FA396A'/>" +
+    "<stop offset='0.5' stop-color='#B166B1'/>" +
+    "<stop offset='1' stop-color='#5A9CFA'/>" +
+    "</linearGradient></defs>" +
+    "<path fill='url(#g)' d='M16 2l9 3.5v7c0 6-3.6 10.2-9 12-5.4-1.8-9-6-9-12v-7z'/>" +
+    "<path fill='#fff' d='M16 10a3.2 3.2 0 0 1 2.6 5.1l1.2 3.4h-7.6l1.2-3.4A3.2 3.2 0 0 1 16 10z'/></svg>"
+  );
+
+  var DEFAULT_LOCK = svgUri(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'" +
+    " stroke='#94a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
+    "<rect x='3' y='11' width='18' height='11' rx='2' ry='2'/>" +
+    "<path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>"
+  );
+
+  // -------------------------------------------------------------------------
+  // Small helpers
+  // -------------------------------------------------------------------------
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function safeName(name) {
+    var base = String(name || 'document')
+      .replace(/\.[^.]+$/, '')
+      .replace(/[^A-Za-z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'document';
+    return base + '.html';
+  }
+
+  function readBytes(file) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(new Uint8Array(r.result)); };
+      r.onerror = function () { reject(new Error('Could not read file.')); };
+      r.readAsArrayBuffer(file);
+    });
+  }
+
+  function bytesToB64(bytes) {
+    var s = '';
+    var c = new Uint8Array(bytes);
+    for (var i = 0; i < c.length; i += 0x8000) {
+      s += String.fromCharCode.apply(null, c.subarray(i, i + 0x8000));
+    }
+    return btoa(s);
+  }
+
+  function imageToDataUri(file) {
+    if (!file) return Promise.resolve(null);
+    return readBytes(file).then(function (bytes) {
+      return 'data:' + (file.type || 'application/octet-stream') + ';base64,' + bytesToB64(bytes);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Custom CSS sanitization: drop anything that could require a network fetch
+  // so the output keeps working fully offline.
+  // -------------------------------------------------------------------------
+  function sanitizeCss(text, warnings) {
+    var lines = String(text || '').split('\n');
+    var out = [];
+    var external = /url\((['"]?)(https?:)?\/\//i;
+    lines.forEach(function (line) {
+      var t = line.trim();
+      if (/^@import/i.test(t)) {
+        warnings.push('Removed @import rule: "' + t + '" (no external requests allowed).');
+        return;
+      }
+      if (external.test(line)) {
+        warnings.push('Removed external url() reference: "' + t + '" (must be offline-safe).');
+        return;
+      }
+      out.push(line);
+    });
+    return out.join('\n');
+  }
+
+  // -------------------------------------------------------------------------
+  // Crypto (Part 3): native Web Crypto only. PBKDF2-HMAC-SHA256 (600k
+  // iterations, random 16-byte salt) -> AES-GCM (256-bit, random 12-byte IV).
+  // -------------------------------------------------------------------------
+  function encryptFile(file, password) {
+    var salt = crypto.getRandomValues(new Uint8Array(SALT_LEN));
+    var iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
+    return readBytes(file).then(function (bytes) {
+      return crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+      ).then(function (km) {
+        return crypto.subtle.deriveKey(
+          { name: 'PBKDF2', salt: salt, iterations: ITERATIONS, hash: 'SHA-256' },
+          km,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+      }).then(function (key) {
+        return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, bytes);
+      }).then(function (ctBuf) {
+        return {
+          salt: bytesToB64(salt),
+          iv: bytesToB64(iv),
+          ct: bytesToB64(new Uint8Array(ctBuf))
+        };
+      });
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Default stylesheet baked into every output file's page (Part 4 theme).
+  // -------------------------------------------------------------------------
+  var OUTPUT_CSS = [
+    '*{box-sizing:border-box}',
+    'html,body{margin:0;padding:0}',
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;",
+    '     color:#292d2f;min-height:100vh}',
+    '.banner{display:flex;align-items:center;justify-content:space-between;padding:16px 22px}',
+    '.banner img{height:36px;width:auto}',
+    '.burger span{display:block;width:22px;height:3px;background:rgba(255,255,255,.92);border-radius:2px;margin:3px 0}',
+    '.logo-only{padding:20px 22px 4px}',
+    '.logo-only img{height:36px;width:auto}',
+    '.content{max-width:560px;margin:0 auto;padding:44px 24px 72px}',
+    'h1{font-size:32px;font-weight:800;margin:0 0 12px;color:#292d2f}',
+    '.desc{font-size:16px;color:#6b7280;margin:0 0 28px;line-height:1.5}',
+    '.lock-icon{width:64px;height:64px;margin:8px 0 20px}',
+    '.lock-text{color:#6b7280;font-size:15px;margin:0 0 16px}',
+    'label{display:block;font-size:14px;font-weight:600;margin-bottom:8px;color:#374151}',
+    'input[type=password]{width:100%;padding:12px 14px;font-size:16px;border:1px solid #d1d5db;border-radius:8px}',
+    'input[type=password]:focus{outline:none;border-color:#b166b1;box-shadow:0 0 0 3px rgba(177,102,177,.18)}',
+    'button[type=submit]{width:100%;margin-top:12px;padding:13px;font-size:16px;font-weight:700;color:#fff;',
+    '  background:#b166b1;border:0;border-radius:8px;cursor:pointer}',
+    'button[type=submit]:hover{background:#9d4f9d}',
+    'button[type=submit]:disabled{opacity:.6;cursor:progress}',
+    '.error{color:#b91c1c;font-size:14px;margin:12px 0 0}',
+    '.note{color:#0f766e;font-size:14px;margin:12px 0 0}',
+    '.foot{display:flex;gap:18px;margin-top:40px;flex-wrap:wrap}',
+    '.foot a{color:#5a9cfa;text-decoration:none;font-size:14px;font-weight:600}',
+    '.foot a:hover{text-decoration:underline}'
+  ].join('\n');
+
+  // -------------------------------------------------------------------------
+  // Decryption script embedded in every output file (Part 2). Contains ONLY
+  // decrypt-and-download logic. Deliberately no key-derivation for encodING,
+  // no IV/salt generation, no encryption routine - just the inverse of what
+  // the builder produced, against the single embedded CONFIG.payload.
+  // -------------------------------------------------------------------------
+  var OUTPUT_JS = [
+    ';(function(){',
+    '  "use strict";',
+    '  var CONFIG = __CONFIG__;',
+    '  var ITERATIONS = 600000;',
+    '  var LABEL = "Unlock & download";',
+    '  function b64ToBytes(b64){var s=atob(b64);var u=new Uint8Array(s.length);',
+    '    for(var i=0;i<s.length;i++){u[i]=s.charCodeAt(i);}return u;}',
+    '  var form=document.getElementById("unlock");',
+    '  var pw=document.getElementById("pw");',
+    '  var err=document.getElementById("err");',
+    '  var note=document.getElementById("note");',
+    '  var go=document.getElementById("go");',
+    '  form.addEventListener("submit",function(ev){',
+    '    ev.preventDefault();',
+    '    err.hidden=true; note.hidden=true; pw.disabled=true; go.disabled=true; go.textContent="Decrypting...";',
+    '    crypto.subtle.importKey("raw",new TextEncoder().encode(pw.value),"PBKDF2",false,["deriveKey"])',
+    '      .then(function(km){',
+    '        return crypto.subtle.deriveKey(',
+    '          {name:"PBKDF2",salt:b64ToBytes(CONFIG.payload.salt),iterations:ITERATIONS,hash:"SHA-256"},',
+    '          km,{name:"AES-GCM",length:256},false,["decrypt"]);',
+    '      })',
+    '      .then(function(key){',
+    '        return crypto.subtle.decrypt(',
+    '          {name:"AES-GCM",iv:b64ToBytes(CONFIG.payload.iv)},key,b64ToBytes(CONFIG.payload.ct));',
+    '      })',
+    '      .then(function(pt){',
+    '        var blob=new Blob([pt],{type:CONFIG.payload.type||"application/octet-stream"});',
+    '        var a=document.createElement("a");',
+    '        var url=URL.createObjectURL(blob);',
+    '        a.href=url; a.download=CONFIG.payload.name||"download";',
+    '        document.body.appendChild(a); a.click();',
+    '        setTimeout(function(){URL.revokeObjectURL(url); a.remove();},1000);',
+    '        note.textContent="Download started. If nothing happened, check your browser download settings.";',
+    '        note.hidden=false;',
+    '      })',
+    '      .catch(function(){',
+    '        err.textContent="Incorrect password.";',
+    '        err.hidden=false;',
+    '      })',
+    '      .finally(function(){',
+    '        pw.disabled=false; pw.value=""; go.disabled=false; go.textContent=LABEL; pw.focus();',
+    '      });',
+    '  });',
+    '})();'
+  ].join('\n');
+
+  // -------------------------------------------------------------------------
+  // Assemble one self-contained output file (Part 2). Conditional elements are
+  // baked in here at generation time - the output file has no runtime
+  // configuration of its own.
+  // -------------------------------------------------------------------------
+  function makeOutput(o, payload) {
+    var gradient = 'linear-gradient(90deg,' + o.c1 + ',' + o.c2 + ',' + o.c3 + ')';
+
+    var banner = '';
+    if (o.showBanner) {
+      banner = [
+        '<div class="banner" role="banner" style="background:' + gradient + ';">',
+        o.showLogo ? '<img alt="" src="' + o.logo + '">' : '<span></span>',
+        '<span class="burger" aria-hidden="true"><span></span><span></span><span></span></span>',
+        '</div>'
+      ].join('');
+    } else if (o.showLogo) {
+      banner = '<div class="logo-only"><img alt="" src="' + o.logo + '"></div>';
+    }
+
+    var head = o.showHeading ? '<h1>' + esc(o.heading) + '</h1>' : '';
+    var desc = o.showDesc ? '<p class="desc">' + esc(o.description) + '</p>' : '';
+    var lock = o.showLock
+      ? '<img class="lock-icon" alt="" src="' + o.lock + '">'
+      : '<p class="lock-text">Enter the password to unlock and download.</p>';
+
+    var footer = [];
+    if (o.showLegal) {
+      footer.push('<a href="' + esc(o.legal.url) + '" target="_blank" rel="noopener">' + esc(o.legal.label) + '</a>');
+    }
+    if (o.showPrivacy) {
+      footer.push('<a href="' + esc(o.privacy.url) + '" target="_blank" rel="noopener">' + esc(o.privacy.label) + '</a>');
+    }
+    if (o.showLearn) {
+      footer.push('<a href="' + esc(LEARN_MORE_URL) + '" target="_blank" rel="noopener">Learn more</a>');
+    }
+    var foot = footer.length ? '<div class="foot">' + footer.join('') + '</div>' : '';
+
+    return [
+      '<!DOCTYPE html>',
+      '<html lang="en">',
+      '<head>',
+      '<meta charset="utf-8">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      '<title>' + esc(payload.name || 'Protected file') + '</title>',
+      '<style>',
+      OUTPUT_CSS,
+      '</style>',
+      o.customCss ? '<style>' + o.customCss + '</style>' : '',
+      '</head>',
+      '<body style="background:' + esc(o.bgColor) + ';">',
+      banner,
+      '<main class="content">',
+      head,
+      desc,
+      lock,
+      '<p class="error" id="err" hidden></p>',
+      '<form id="unlock" autocomplete="off">',
+      '<label for="pw">Password</label>',
+      '<input type="password" id="pw" name="pw" autocomplete="current-password" required autofocus>',
+      '<button type="submit" id="go">Unlock &amp; download</button>',
+      '</form>',
+      '<p class="note" id="note" hidden></p>',
+      foot,
+      '</main>',
+      '<script>',
+      OUTPUT_JS.replace('__CONFIG__', JSON.stringify({ payload: payload }).replace(/</g, '\\u003c')),
+      '<' + '/' + 'script>',
+      '</body>',
+      '</html>'
+    ].join('\n');
+  }
+
+  // -------------------------------------------------------------------------
+  // Wire up the builder UI
+  // -------------------------------------------------------------------------
+  var mark = document.getElementById('topMark');
+  mark.src = DEFAULT_LOGO;
+  document.getElementById('learnFixed').textContent = 'Learn more destination (fixed): ' + LEARN_MORE_URL;
+
+  function setWarnings(list) {
+    var el = document.getElementById('warnings');
+    if (!list.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    el.style.display = 'block';
+    el.innerHTML = '';
+    var ul = document.createElement('ul');
+    list.forEach(function (w) {
+      var li = document.createElement('li');
+      li.textContent = w;
+      ul.appendChild(li);
+    });
+    el.appendChild(ul);
+  }
+
+  document.getElementById('generate').addEventListener('click', function () {
+    var file = document.getElementById('file').files[0];
+    var password = document.getElementById('password').value;
+    var errEl = document.getElementById('error');
+    var noteEl = document.getElementById('note');
+    var btn = this;
+    errEl.style.display = 'none';
+    noteEl.style.display = 'none';
+
+    if (!file) { errEl.textContent = 'Choose a file to protect first.'; errEl.style.display = 'block'; return; }
+    if (!password) { errEl.textContent = 'Enter a password.'; errEl.style.display = 'block'; return; }
+    if (password.length < 8) {
+      errEl.textContent = 'Use a password of at least 8 characters.';
+      errEl.style.display = 'block'; return;
+    }
+
+    var warnings = [];
+    var customCss = '';
+    var cssFile = document.getElementById('cssFile').files[0];
+
+    var logoFile = document.getElementById('logoFile').files[0] || null;
+    var lockFile = document.getElementById('lockFile').files[0] || null;
+    var showCustom = document.getElementById('showCustom').checked && !!cssFile;
+
+    var o = {
+      c1: document.getElementById('c1').value,
+      c2: document.getElementById('c2').value,
+      c3: document.getElementById('c3').value,
+      bgColor: document.getElementById('bgColor').value,
+      heading: document.getElementById('heading').value || 'This file is protected',
+      description: document.getElementById('description').value,
+      showLogo: document.getElementById('showLogo').checked,
+      showBanner: document.getElementById('showBanner').checked,
+      showHeading: document.getElementById('showHeading').checked,
+      showDesc: document.getElementById('showDesc').checked,
+      showLock: document.getElementById('showLock').checked,
+      showLegal: document.getElementById('showLegal').checked,
+      showPrivacy: document.getElementById('showPrivacy').checked,
+      showLearn: document.getElementById('showLearn').checked,
+      legal: {
+        label: document.getElementById('legalLabel').value || 'Legal',
+        url: document.getElementById('legalUrl').value
+      },
+      privacy: {
+        label: document.getElementById('privacyLabel').value || 'Privacy',
+        url: document.getElementById('privacyUrl').value
+      }
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'Building...';
+
+    var logoPromise = o.showLogo
+      ? imageToDataUri(logoFile).then(function (uri) { return uri || DEFAULT_LOGO; })
+      : Promise.resolve(null);
+    var lockPromise = o.showLock
+      ? imageToDataUri(lockFile).then(function (uri) { return uri || DEFAULT_LOCK; })
+      : Promise.resolve(null);
+    var cssPromise = showCustom && cssFile
+      ? readBytes(cssFile).then(function (bytes) {
+          return sanitizeCss(new TextDecoder().decode(bytes), warnings);
+        })
+      : Promise.resolve('');
+
+    Promise.all([logoPromise, lockPromise, cssPromise]).then(function (res) {
+      o.logo = res[0];
+      o.lock = res[1];
+      o.customCss = res[2];
+      setWarnings(warnings);
+      return encryptFile(file, password);
+    }).then(function (payload) {
+      var html = makeOutput(o, {
+        salt: payload.salt,
+        iv: payload.iv,
+        ct: payload.ct,
+        name: file.name,
+        type: file.type
+      });
+      var a = document.createElement('a');
+      var url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      a.href = url;
+      a.download = safeName(file.name);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+      noteEl.textContent = 'Built ' + safeName(file.name) + '. It decrypts and downloads on the correct password.';
+      noteEl.style.display = 'block';
+    }).catch(function (e) {
+      errEl.textContent = 'Build failed: ' + (e && e.message ? e.message : e);
+      errEl.style.display = 'block';
+      console.error(e);
+    }).finally(function () {
+      btn.disabled = false;
+      btn.textContent = 'Build protected file';
+    });
+  });
+})();
+</script>
+</body>
+</html>

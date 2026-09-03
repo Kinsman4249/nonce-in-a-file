@@ -1,0 +1,44 @@
+# Deploy builder to Cloudflare Pages
+#
+# Deploys ONLY the builder bundle (the file-generation tool) to Cloudflare
+# Pages on every push to main. Generated output files are one-off downloads
+# produced in-browser and uploaded to Pages by hand when a new protected
+# document is needed; they are never deployed by CI, so a builder deploy can
+# never touch previously-uploaded output files.
+#
+# Keep this workflow separate from release.yml: this one deploys on every
+# push to main, release.yml only runs on a version tag.
+#
+# ACTION PINNING: the wrangler-action `uses:` line is pinned to a major-version
+# tag, matching the style used elsewhere in this repo. Do NOT auto-pin to a
+# specific SHA (cloudflare/wrangler-action@v4) without asking the maintainer.
+
+name: Deploy Builder
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy builder to Cloudflare Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      # The builder is pure static HTML/CSS/JS with no build step, so its
+      # source directory IS its deployable output. If a bundling/minifying step
+      # is ever added, add it here as a prior step and point the deploy below
+      # at the build output directory instead of `builder/`.
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy . --project-name=nonce-in-a-file-builder
+          workingDirectory: builder

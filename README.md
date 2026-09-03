@@ -1,88 +1,142 @@
-# <PROJECT_NAME>
+# nonce-in-a-file
 
-<ONE_LINE_DESCRIPTION>
+Client-side file encryption that produces a downloadable, self-decrypting HTML
+document. Run the builder in your browser, pick a file and a password, and it
+returns a single self-contained HTML file that can be hosted or sent directly:
+a visitor enters the password and the page decrypts and downloads the original
+file to their device. Everything happens locally - nothing is ever uploaded.
 
-## Install
+## What this repository contains
 
-<INSTALL_INSTRUCTIONS>
+Two separate static, serverless artifacts:
+
+- `builder/index.html` - the file owner's tool. Lets you pick a file, set a
+  password, configure branding (logo, colors, headings, link buttons, custom
+  CSS), and generate one output file. This is the only bundle deployed by CI.
+- The generated output files - a single self-contained HTML file per protected
+  document. Each contains decrypt-and-download logic only; there is no code
+  path that can encrypt new content or produce another protected file.
+
+Both are pure static HTML/CSS/JS. No backend, no API routes, no database, no
+Cloudflare Worker, and no paid Cloudflare feature is required. The builder
+deploys to Cloudflare Pages; generated output files also work when simply
+double-clicked from local disk.
+
+## How it works (security model)
+
+- Key derivation: PBKDF2-HMAC-SHA256 with 600,000 iterations (the iteration
+  count OWASP's Password Storage Cheat Sheet recommends) and a fresh random
+  16-byte salt per file.
+- Encryption: AES-256-GCM (authenticated encryption, so tampering is detected)
+  with a fresh random 12-byte nonce per file.
+- All cryptography uses the browser's native Web Crypto API. No bundled crypto
+  libraries, no custom cipher or KDF code.
+- The password is used only in the visitor's browser to derive the key. It is
+  never stored or embedded. There is no recovery mechanism, so the owner must
+  keep a copy of any password they use.
+
+The "Learn more" destination baked into every output file is fixed in the
+builder's own source (`LEARN_MORE_URL` in `builder/index.html`). Its label can
+be toggled on or off per build, but its destination can never be overridden by
+any input - this is the single origin a recipient can check to confirm a file
+really came from this project.
 
 ## Usage
 
-<USAGE_INSTRUCTIONS>
+### Creating a protected file
 
-## Configuration
+1. Open the builder page in a browser.
+2. Choose the file to protect and set a password (the page recommends at least
+   8 characters and there is no way to recover it).
+3. Adjust branding as needed. Every element (logo, banner, heading,
+   description, lock icon, legal/privacy/learn-more buttons, custom CSS) has an
+   independent on/off toggle applied at generation time.
+4. Click "Build protected file". The page downloads a `.html` file that
+   decrypts and downloads your original when the correct password is entered.
 
-<CONFIGURATION_INSTRUCTIONS>
+### Sending or hosting a protected file
+
+Share the generated `.html` however you like - file attachment, WeTransfer,
+or static hosting such as Cloudflare Pages. The page works fully offline once
+loaded; the only network requests are the optional legal/privacy/learn-more
+links, which the visitor may or may not click.
+
+Generated output files are produced locally and uploaded by hand whenever a
+new protected document is needed. They do not need automation, so they are
+never deployed by CI.
+
+## Deployment
+
+### The builder (automated)
+
+The builder is deployed to Cloudflare Pages by
+`.github/workflows/deploy-builder.yml` on every push to `main`, using
+Cloudflare's `wrangler-action`. Output files live in a separate Pages project;
+this workflow never touches them and vice versa.
+
+#### Before the first deploy
+
+1. Point the fixed "Learn more" destination at this project's canonical
+   repository. Edit `LEARN_MORE_URL` near the top of `builder/index.html` and
+   commit it. This is the one value every produced file links back to, so set
+   it once and leave it.
+
+2. Create a Cloudflare API token with the least privilege needed:
+   - In the Cloudflare dashboard go to My Profile > API Tokens > Create Token,
+     choose "Custom token".
+   - Permissions: Account > Cloudflare Pages > Edit.
+   - Do not grant anything broader. The token scope is never narrower than
+     the deployment needs.
+
+3. Find your account ID: Cloudflare dashboard, right sidebar or the Account
+   Home; it is a 32-character hex string.
+
+4. Add the two values as GitHub Actions repository secrets:
+   - Repository > Settings > Secrets and variables > Actions > New repository
+     secret.
+   - `CLOUDFLARE_API_TOKEN` - the token from step 2.
+   - `CLOUDFLARE_ACCOUNT_ID` - the account ID from step 3.
+   - Never commit these values to the repository.
+
+Once the secrets exist, any push to `main` deploys `builder/` to the
+`nonce-in-a-file-builder` Pages project. The Pages project must already exist
+or be created for the first wrangler deploy to target.
+
+### The output files (manual)
+
+Upload generated `.html` files to your chosen Pages project (or any static
+host) by hand whenever you publish a new protected document. Because they are
+static and infrequently changed, there is nothing to automate.
 
 ## Development
 
-<DEVELOPMENT_INSTRUCTIONS>
+The artifacts are plain HTML/CSS/JS with no build step. To run the builder
+locally, serve `builder/` (`python3 -m http.server 8000` in the repo root and
+open http://localhost:8000/builder/) or just open `builder/index.html`.
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full contribution workflow, and `<TESTING_INSTRUCTIONS>` above for how to verify a change locally.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the contribution workflow.
 
 ## Releases
 
-Push a tag matching `vX.Y.Z` to `main` (`git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z`). CI builds and publishes the GitHub Release automatically - nothing else to do.
+Push a tag matching `vX.Y.Z` to `main`
+(`git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z`). CI builds
+and publishes the GitHub Release automatically and, because this repo uses the
+Business Source License, rolls the Change Date and copyright year forward in
+the tagged commit. This is independent of the builder deployment workflow,
+which runs on every push to `main`, not on tags.
 
 ## License
 
-See [LICENSE](<REPO_URL>/blob/main/LICENSE).
+Licensed under the Business Source License 1.1. See [LICENSE](LICENSE). Before
+the Change Date, the work is free to use, modify, and redistribute except as a
+paid, hosted service to third parties; after the Change Date it becomes
+Apache License 2.0. Source code is at
+<REPO_URL>/blob/main/LICENSE.
 
 ## Community
 
-- [CONTRIBUTING.md](./CONTRIBUTING.md) - how to report bugs, propose features, and submit changes.
+- [CONTRIBUTING.md](./CONTRIBUTING.md) - how to report bugs, propose features,
+  and submit changes.
 - [SECURITY.md](./SECURITY.md) - how to report a vulnerability.
-- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) - the standards this project holds contributors to.
-
-<!-- ============================================================
-     TEMPLATE INDEX - delete everything from this marker down,
-     and delete the _template/ folder, when starting a real project.
-     ============================================================ -->
-
-## What this template gives you
-
-Everything above this marker is a real project README, ready to fill in and
-keep. Everything below it, plus the whole `_template/` folder, is reference
-material for setting the project up: a step-by-step new-project walkthrough,
-the release workflow this repo ships with, and a git/GitHub command reference.
-None of it is needed once the project is running - delete `_template/` and
-this section together and you are left with a normal README.
-
-### Getting started
-
-- [new-project.md](./_template/docs/new-project.md) - the full walkthrough from idea to first shipped release.
-- [vscode-setup.md](./_template/docs/vscode-setup.md) - one-time VS Code and GitHub sign-in setup.
-- [troubleshooting.md](./_template/docs/troubleshooting.md) - common gotchas when setting up a new project.
-
-The dev environment these docs assume is provisioned by
-[vscodium-for-immutable](https://github.com/Kinsman4249/vscodium-for-immutable):
-it builds the `vscodium-box` container and installs the editor, git, gh, and
-the lint toolchain (shellcheck, actionlint, jq, fd, yamllint). Environment
-changes belong in that installer rather than in one-off commands, so they
-survive a container rebuild.
-
-### Release workflow
-
-- [release-workflow.md](./_template/docs/release-workflow.md) - what `release.yml` does and how to run it.
-- [release-languages.md](./_template/docs/release-languages.md) - adding a compiled build on top of the default source bundle.
-- [release-hardening.md](./_template/docs/release-hardening.md) - the security rationale behind the workflow's defaults.
-
-### Git and GitHub
-
-- [git-setup.md](./_template/docs/git-setup.md) - one-time machine setup for git and the `gh` CLI.
-- [git-daily-flow.md](./_template/docs/git-daily-flow.md) - when to push to `main` directly versus opening a PR.
-- [git-pr-flow.md](./_template/docs/git-pr-flow.md) - branching, opening a PR, and the `gh pr` commands.
-- [git-merging.md](./_template/docs/git-merging.md) - the three PR merge strategies and how to set a default.
-- [git-tags-releases.md](./_template/docs/git-tags-releases.md) - creating and pushing tags, cutting a release.
-- [git-recovery.md](./_template/docs/git-recovery.md) - recovering from the git mistakes that come up most often.
-- [git-aliases.md](./_template/docs/git-aliases.md) - time-saving git and `gh` aliases plus a summary card.
-
-### Conventions
-
-- [versioning.md](./_template/docs/versioning.md) - the SemVer rules used across tags, releases, and the changelog.
-- [changelog-format.md](./_template/docs/changelog-format.md) - how to write `CHANGELOG.md` entries.
-
-To start a real project: delete everything from the marker above down, delete
-the `_template/` folder, and fill in the placeholders left in Part A. For the
-full library index - what this repo is, why it is private, and the complete
-doc list - see [_template/README.md](./_template/README.md).
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) - the standards this project
+  holds contributors to.
