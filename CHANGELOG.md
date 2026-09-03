@@ -7,11 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-03
+
 ### Added
 
+- Every generated file now shows a visible, clickable "Built by the nonce-in-a-file builder" provenance line. When the builder page is served over http(s), the line links to that deployment's origin, auto-detected at build time from `location.origin`; a local file:// copy renders the same line as plain text because there is no hosting origin. This provenance is separate from the always-on Learn-more link.
+- Generated files now ship the top-left logo (remote `LOGO_URL` or embedded default) as an inline data favicon, so no separate icon file travels with the output. The inline data favicon also stops Firefox from auto-fetching `/favicon.ico` from the origin, which would otherwise log an `img-src data:` CSP violation.
+- The remote `LOGO_URL` logo is now fetched at build time and embedded into every generated file as a data URI (SVG as inline text, other images as base64), so generated files stay fully self-contained and render the logo under their `img-src data:` CSP instead of a blocked remote request. If the logo server does not allow cross-origin fetch, the build warns and falls back to the padlock mark.
+- Added an optional `BUILDER_TITLE` GitHub Actions repository variable that changes the builder page's browser-tab title at deploy time; the committed default title is used when the variable is unset. It works like `LEARN_MORE_URL`/`LOGO_URL` (staged in `builder-dist`, never aborts the deploy).
+- The optional builder cards (Recipients, Signing, Branding, Links, Custom CSS) are now collapsible and start collapsed, so the required File section stays front and centre; clicking a card header expands or collapses it.
+- Added a live match check for the confirm-password field that tints the box green when it matches the password and red with a message when it does not, so a recipient typo is caught before the file is built.
 - Planned (not yet built): email integrations - an Outlook (Microsoft 365) Office.js add-in ("Protect attachments" task-pane that runs the builder logic client-side, swaps the attachment for the self-decrypting .html, and stamps an internet header such as `X-NonceInAFile-V`, wired to `OnMessageSend` auto-protect and `OnMessageDecrypt` for add-in-equipped recipients), a Gmail path (Chrome/Edge extension content-script button or a Google Workspace add-on via Apps Script), and local auto-protect heuristics that offer to protect before send when an attachment filename looks sensitive (confidential, salary, ssn, pan, draft). Deciding "attachment vs hosted link" requires the cloud-infra bucket.
 - Planned (not yet built), cloud-infra roadmap: recovery-key escrow and emergency access (needs accounts, server key management, storage); hosted share links (a site-side counter Worker plus Pages-hosted outputs with expiry/revocation, max-open / burn-after-read, manual burn, download receipts, email notifications); email delivery of unlock links with read receipts and audit logs; one-time unlock codes over email/SMS with no password out of band; server-side rate limiting and abuse controls, download counting, optional geofencing and a WebAuthn bot-shield on the hosted unlock page; and accounts with cross-device keyring sync.
 - Planned (not yet built): an optional, off-by-default ad-supported build mode. When enabled at build time it adds a distinctly styled "Sponsor" region; ads never appear in decrypted content, the mode requires an external network tag so it must stay opt-in and be documented in `PRIVACY.md`, and it needs an ad-slot and provider decision before any implementation.
+
+### Changed
+
+- The ECDSA signature now binds the signer label into the signed message and includes it on verify, so an edited label reads as an unverified signature instead of a spoofed badge.
+- The signed badge now shows the signer's public-key fingerprint (SHA-256, first 8 bytes) so a recipient can confirm it with the sender out of band, and an unverified signature is noted as non-fatal but its contents untrusted.
+- The decryptor now surfaces an Argon2-engine load failure explicitly instead of a wrong-password message, and the builder warns when the KDF downgrades to PBKDF2 for a session.
+
+### Fixed
+
+- The inline Argon2 bundle in generated files is now verified against a pinned SHA-256 before it is loaded, so a corrupted or tampered bundle is refused rather than executed.
+- Generated files now embed a Content-Security-Policy meta tag (`default-src 'none'`, `img-src data:`, `script-src 'unsafe-inline' 'wasm-unsafe-eval'`, `connect-src 'none'`, `base-uri 'none'`, `form-action 'none'`).
+- Added a 100 MiB total-size guard to the builder so very large selections cannot crash the browser tab.
+- The signature fingerprint in generated files is now deterministic: the key digest and the signature verify run in a single `Promise.all` chain, so the "Signed and verified" badge can never render with an empty key fingerprint when the digest resolves after the verification.
 
 ## [1.2.0] - 2026-09-03
 
