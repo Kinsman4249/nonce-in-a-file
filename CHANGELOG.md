@@ -9,8 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The builder's inline script is no longer broken when a deploy-time value from
+  a GitHub Actions variable contains an apostrophe or other quote. A value such
+  as a `BUILDER_TITLE` of `Ethan Antonio's File Encrypter` was injected
+  single-quoted unescaped, producing invalid JS (`Unexpected identifier 's'`)
+  that killed the entire script - so the top-left logo, tab title, and
+  collapsible cards all silently stopped working. Injected values are now
+  JSON-encoded (and `<` is escaped) so any value stays valid. The script tag
+  is also marked `data-cfasync="false"` so Cloudflare Rocket Loader leaves the
+  large inline builder script untouched.
 - The top-left `LOGO_URL` logo no longer silently falls back to the grey
-- padlock in generated files when the logo host does not send an
+  padlock in generated files when the logo host does not send an
   `Access-Control-Allow-Origin` header. The deploy workflow now downloads the
   logo in the runner and injects it into `LOGO_URL` as a fully self-contained
   data URI, so the builder embeds it directly and no browser-side cross-origin
