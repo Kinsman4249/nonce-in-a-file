@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Planned (not yet built): email integrations - an Outlook (Microsoft 365) Office.js add-in ("Protect attachments" task-pane that runs the builder logic client-side, swaps the attachment for the self-decrypting .html, and stamps an internet header such as `X-NonceInAFile-V`, wired to `OnMessageSend` auto-protect and `OnMessageDecrypt` for add-in-equipped recipients), a Gmail path (Chrome/Edge extension content-script button or a Google Workspace add-on via Apps Script), and local auto-protect heuristics that offer to protect before send when an attachment filename looks sensitive (confidential, salary, ssn, pan, draft). Deciding "attachment vs hosted link" requires the cloud-infra bucket.
+- Planned (not yet built), cloud-infra roadmap: recovery-key escrow and emergency access (needs accounts, server key management, storage); hosted share links (a site-side counter Worker plus Pages-hosted outputs with expiry/revocation, max-open / burn-after-read, manual burn, download receipts, email notifications); email delivery of unlock links with read receipts and audit logs; one-time unlock codes over email/SMS with no password out of band; server-side rate limiting and abuse controls, download counting, optional geofencing and a WebAuthn bot-shield on the hosted unlock page; and accounts with cross-device keyring sync.
+- Planned (not yet built): an optional, off-by-default ad-supported build mode. When enabled at build time it adds a distinctly styled "Sponsor" region; ads never appear in decrypted content, the mode requires an external network tag so it must stay opt-in and be documented in `PRIVACY.md`, and it needs an ad-slot and provider decision before any implementation.
+
 ## [1.2.0] - 2026-09-03
 
 ### Added

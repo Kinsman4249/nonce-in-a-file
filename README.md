@@ -10,9 +10,10 @@ file to their device. Everything happens locally - nothing is ever uploaded.
 
 Two separate static, serverless artifacts:
 
-- `builder/index.html` - the file owner's tool. Lets you pick a file, set a
-  password, configure branding (logo, colors, headings, link buttons, custom
-  CSS), and generate one output file. This is the only bundle deployed by CI.
+- `builder/index.html` - the file owner's tool. Lets you pick a file (or a
+  pasted note), set a password or add a public-key recipient, configure
+  branding (logo, colors, headings, link buttons, custom CSS), and generate
+  one output file. This is the only bundle deployed by CI.
 - The generated output files - a single self-contained HTML file per protected
   document. Each contains decrypt-and-download logic only; there is no code
   path that can encrypt new content or produce another protected file.
@@ -44,6 +45,18 @@ never breaks previously generated files. Files carry a format version
   defeats the AES-GCM partition oracle when a file has several recipients
   (the ECDH public-key path derives the same wrap+commit keys from an HKDF
   expansion of the shared secret).
+- Recipients: a protected file can carry a key ring of several recipients,
+  each an independently wrapped copy of the data key under its own secret.
+  Recipient one is always the primary password; further recipients are extra
+  passwords or ECDH P-256 public keys, so any recipient in the ring can open
+  the same file. The key ring is capped at 50 entries and identical password
+  recipients are deduplicated so Argon2id runs once per distinct secret.
+- Optional sender authenticity: the builder can sign the ciphertext with an
+  ECDSA P-256 key (one you provide, or generated per build). The generated
+  file embeds the signature and the signer's public key and shows a "Signed
+  and verified" badge on load; the signature also covers the IV, so a
+  corrupted IV reads as a signature failure rather than a bogus verified
+  badge. This is optional and independent of the always-on Learn-more link.
 - Encryption: AES-256-GCM (authenticated encryption, so tampering is detected)
   with a fresh random 12-byte nonce per file.
 - Compression: plaintext is gzip-compressed first using the browser's native
@@ -108,7 +121,9 @@ committed to the repo. Leave `LOGO_URL` unset (or empty) to keep the padlock.
 5. Click "Build protected file". The page downloads a `.html` file that,
    when the correct password is entered, downloads your original file - or, for
    a multi-file bundle, shows a file list with per-file download buttons and a
-   "Download all" action.
+   "Download all" action. During a build an indeterminate progress bar with an
+   elapsed-seconds readout is shown, since compression and Argon2id can take a
+   moment on large files.
 
 ### Sending or hosting a protected file
 
