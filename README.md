@@ -87,21 +87,22 @@ never breaks previously generated files. Files carry a format version
 
 Every generated file carries two separate destinations:
 
-- The "Learn more" button is included in every output file and cannot be turned
-  off. Its destination is fixed in the builder (see `LEARN_MORE_URL` in
-  `builder/index.html`) and injected at deploy time from the GitHub Actions
-  repository **variable** named `LEARN_MORE_URL`; it can never be overridden by
-  any user input or upload - this is the single origin a recipient can check to
-  confirm a file really came from this project, and a fork can point it at its
-  own project page. To change that destination, edit the `LEARN_MORE_URL`
-  variable; no source change or commit is required.
+- A fixed footer of three links - "Legal", "Privacy", and "Learn more" - is
+  included in every output file and cannot be turned off or overridden by any
+  user input or upload. Their destinations are hardcoded in `builder/index.html`
+  (`LEGAL_URL`/`PRIVACY_URL`/`LEARN_MORE_URL`) and may be overridden at deploy
+  time from the matching GitHub Actions repository **variables**. This fixed
+  set is the single origin a recipient can check to confirm a file really came
+  from this project, and a fork can point it at its own project page. To change
+  any of the three destinations, edit the corresponding variable; no source
+  change or commit is required.
 - A visible "Built by the nonce-in-a-file builder" line at the bottom of every
   output. When the builder page is served over http(s) (for example from
   Cloudflare Pages), this line links to that deployment's origin, so a
   recipient can see which infrastructure produced the file. When the builder is
   opened from local disk (file://), the same line renders as plain text,
   noting the file was built by a local copy. This provenance is auto-detected
-  at build time (`location.origin`) and is separate from the Learn more link.
+  at build time (`location.origin`) and is separate from the fixed footer links.
 
 The top-left banner mark defaults to a grey padlock. If you keep a logo on your
 own site or CDN, set the optional `LOGO_URL` GitHub Actions **variable** to its
@@ -133,9 +134,9 @@ back to the padlock. Leave `LOGO_URL` unset (or empty) to keep the padlock.
    without pasting them again.
 4. Adjust branding as needed. The optional cards (Recipients, Signing,
    Branding, Links, Custom CSS) start collapsed; click a card header to expand
-   it. Every element (logo, banner, heading, description, lock icon,
-   legal/privacy buttons, custom CSS) has an independent on/off toggle applied
-   at generation time. The Learn more button is always included and cannot be
+   it. Every element (logo, banner, heading, description, lock icon, custom
+   CSS) has an independent on/off toggle applied at generation time. The
+   Legal, Privacy, and Learn more buttons are always included and cannot be
    turned off.
 5. Click "Build protected file". The page downloads a `.html` file that,
    when the correct password is entered, downloads your original file - or, for
@@ -150,6 +151,13 @@ Share the generated `.html` however you like - file attachment, WeTransfer,
 or static hosting such as Cloudflare Pages. The page works fully offline once
 loaded; the only network requests are the legal/privacy/learn-more links,
 which the visitor may or may not click.
+
+When an output file is opened over a hosted `http(s)` URL (not from local
+disk), it shows a collapsed "Share this file" toggle beneath the lock. Opening
+it renders a QR code of that page's URL, generated fully offline and embedded
+inline as SVG (no network, no external service), so a phone can scan it to
+open the file. The share toggle is hidden entirely for `file://` views, where
+there is no shareable URL.
 
 Generated files reconstruct a download in-browser (JavaScript Blob + download
 attribute). This matches MITRE ATT&CK T1027.006 and will be flagged/quarantined
@@ -190,6 +198,11 @@ placeholder and must never ship.
    - Optional: add another variable named `BUILDER_TITLE` (text) to change
      the builder page's browser-tab title. Applied only when set; the deploy
      never fails over it, and the committed default title is used otherwise.
+   - Optional: add variables named `LEGAL_URL` and `PRIVACY_URL` (URLs) to
+     point the fixed Legal and Privacy footer buttons at your own
+     LICENSE/PRIVACY pages. They are applied only when set; when unset, the
+     committed defaults (this project's own LICENSE and PRIVACY.md on GitHub)
+     are used unchanged, and the deploy never fails over them.
 
 2. Create a Cloudflare API token (a secret, unlike the variable above) with the
    least privilege needed:

@@ -35,14 +35,17 @@ jobs:
       # source directory is almost its deployable output. The exceptions are
       # injected just-in-time here from repository variables so the owner can
       # change them without editing and committing source: the fixed "Learn
-      # more" origin (LEARN_MORE_URL, required), the optional top-left logo
-      # (LOGO_URL, applied only when set), and the optional builder tab title
-      # (BUILDER_TITLE, applied only when set). We stage a copy (builder-dist,
-      # gitignored) rather than mutating the tracked file, then deploy the
-      # staged copy.
-      - name: Stage builder and inject Learn More URL and optional logo
+      # more" origin (LEARN_MORE_URL, required), the fixed Legal and Privacy
+      # destinations (LEGAL_URL and PRIVACY_URL, required), the optional
+      # top-left logo (LOGO_URL, applied only when set), and the optional
+      # builder tab title (BUILDER_TITLE, applied only when set). We stage a
+      # copy (builder-dist, gitignored) rather than mutating the tracked file,
+      # then deploy the staged copy.
+      - name: Stage builder and inject fixed links and optional logo
         env:
           LEARN_MORE_URL: ${{ vars.LEARN_MORE_URL }}
+          LEGAL_URL: ${{ vars.LEGAL_URL }}
+          PRIVACY_URL: ${{ vars.PRIVACY_URL }}
           LOGO_URL: ${{ vars.LOGO_URL }}
           BUILDER_TITLE: ${{ vars.BUILDER_TITLE }}
         shell: bash
@@ -70,6 +73,32 @@ jobs:
             fs.writeFileSync(file,s.slice(0,b)+url+s.slice(c));
             console.log('Staged builder with LEARN_MORE_URL -> '+url);
           " builder-dist/index.html
+
+          # Fixed Legal and Privacy destinations, mirroring the committed
+          # defaults in the source: optional overrides, applied only when the
+          # repository variable is set. When unset, the committed defaults (the
+          # project's own LICENSE and PRIVACY.md on GitHub) stay in effect and
+          # this never aborts the deploy, exactly like LOGO_URL / BUILDER_TITLE.
+          for VAR in "LEGAL_URL" "PRIVACY_URL"; do
+            val="${!VAR:-}"
+            [[ -n "$val" ]] || continue
+            MY_KEY="$VAR" MY_VAL="$val" node -e "
+              var fs=require('fs');
+              var file=process.argv[1];
+              var url=process.env.MY_VAL;
+              var KEY=process.env.MY_KEY;
+              var s=fs.readFileSync(file,'utf8');
+              var key=KEY+' = ';
+              var a=s.indexOf(key);
+              var q=String.fromCharCode(39);
+              var b=s.indexOf(q,a)+1;
+              var c=s.indexOf(q,b);
+              if(a<0||b<=0||c<0){ console.error(KEY+' variable not found in '+file); process.exit(1); }
+              if(s.indexOf(url)!==-1){ console.log(KEY+' already '+url+' in staged copy'); }
+              fs.writeFileSync(file,s.slice(0,b)+url+s.slice(c));
+              console.log('Staged builder with '+KEY+' -> '+url);
+            " builder-dist/index.html
+          done
 
           # Optional top-left logo: inject LOGO_URL only when the repository
           # variable is set. When unset, leave the placeholder empty so the

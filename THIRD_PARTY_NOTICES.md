@@ -41,3 +41,49 @@ That reference implementation is dual-licensed:
 
 - CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
 - Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0
+
+## qrcode-generator
+
+The runtime "Share this file" QR code is produced by qrcode-generator, which is
+embedded inline in every generated, password protected output file so a hosted
+file can render a share QR with no network access. The unmodified bundle is
+vendored at `builder/vendor/qrcode.js` and inlined into outputs at build time
+(integrities match the audit in `test/run.js`).
+
+- Project: https://github.com/kazuhikoarase/qrcode-generator
+- Vendored source: `builder/vendor/qrcode.js` (from the project's
+  `js/dist/qrcode.js`)
+- License: MIT (full text in `builder/vendor/LICENSE-qrcode-generator.md`)
+
+The MIT License
+
+Copyright (c) 2009 Kazuhiko Arase
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## jsqr (test-only)
+
+The end-to-end test suite (`test/run.js`) decodes the rendered QR with the
+independent jsqr decoder to prove the QR a recipient scans actually opens the
+page. jsqr ships only in the repository test harness - it is never embedded in
+a generated file or the deployed builder.
+
+- Project: https://github.com/cozmo/jsQR
+- Vendored source: `test/vendor/jsqr.js`
+- License: Apache License 2.0 (full text in `test/vendor/LICENSE-jsqr.txt`)
