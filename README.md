@@ -29,6 +29,9 @@ double-clicked from local disk.
   16-byte salt per file.
 - Encryption: AES-256-GCM (authenticated encryption, so tampering is detected)
   with a fresh random 12-byte nonce per file.
+- Compression: plaintext is gzip-compressed first using the browser's native
+  Compression Streams API, then encrypted. Truly incompressible input (like
+  already-compressed media) is stored uncompressed automatically.
 - All cryptography uses the browser's native Web Crypto API. No bundled crypto
   libraries, no custom cipher or KDF code.
 - The password is used only in the visitor's browser to derive the key. It is

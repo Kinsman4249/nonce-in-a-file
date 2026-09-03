@@ -175,7 +175,9 @@
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
-  var DEFAULT_LOGO = svgUri(
+  // Coloured lock used as both the default banner mark and the default lock
+  // icon. The generated file shows this coloured lock by default.
+  var PRIMARY_LOCK_SVG =
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>" +
     "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
     "<stop offset='0' stop-color='#FA396A'/>" +
@@ -183,15 +185,10 @@
     "<stop offset='1' stop-color='#5A9CFA'/>" +
     "</linearGradient></defs>" +
     "<path fill='url(#g)' d='M16 2l9 3.5v7c0 6-3.6 10.2-9 12-5.4-1.8-9-6-9-12v-7z'/>" +
-    "<path fill='#fff' d='M16 10a3.2 3.2 0 0 1 2.6 5.1l1.2 3.4h-7.6l1.2-3.4A3.2 3.2 0 0 1 16 10z'/></svg>"
-  );
+    "<path fill='#fff' d='M16 10a3.2 3.2 0 0 1 2.6 5.1l1.2 3.4h-7.6l1.2-3.4A3.2 3.2 0 0 1 16 10z'/></svg>";
 
-  var DEFAULT_LOCK = svgUri(
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'" +
-    " stroke='#94a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
-    "<rect x='3' y='11' width='18' height='11' rx='2' ry='2'/>" +
-    "<path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>"
-  );
+  var DEFAULT_LOGO = svgUri(PRIMARY_LOCK_SVG);
+  var DEFAULT_LOCK = svgUri(PRIMARY_LOCK_SVG);
 
   // -------------------------------------------------------------------------
   // Small helpers
@@ -238,6 +235,20 @@
     });
   }
 
+  // Compress bytes with the browser's standard Compression Streams API. The
+  // platform exposes no level knob, so gzip/deflate all use the same deflate
+  // compressor; gzip is chosen as the widely-supported, framing-stable format.
+  // Returns a Promise of a Uint8Array (the compressed data).
+  function compressBytes(bytes) {
+    var ds = new CompressionStream('gzip');
+    var writer = ds.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    return new Response(ds.readable).arrayBuffer().then(function (ab) {
+      return new Uint8Array(ab);
+    });
+  }
+
   // -------------------------------------------------------------------------
   // Custom CSS sanitization: drop anything that could require a network fetch
   // so the output keeps working fully offline.
@@ -269,24 +280,34 @@
     var salt = crypto.getRandomValues(new Uint8Array(SALT_LEN));
     var iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
     return readBytes(file).then(function (bytes) {
-      return crypto.subtle.importKey(
-        'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
-      ).then(function (km) {
-        return crypto.subtle.deriveKey(
-          { name: 'PBKDF2', salt: salt, iterations: ITERATIONS, hash: 'SHA-256' },
-          km,
-          { name: 'AES-GCM', length: 256 },
-          false,
-          ['encrypt', 'decrypt']
-        );
-      }).then(function (key) {
-        return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, bytes);
-      }).then(function (ctBuf) {
-        return {
-          salt: bytesToB64(salt),
-          iv: bytesToB64(iv),
-          ct: bytesToB64(new Uint8Array(ctBuf))
-        };
+      // Compress in the browser with the standard Compression Streams API.
+      // Use the compressed copy only if it actually saved space; incompressible
+      // input (already-compressed media) keeps the original bytes instead.
+      return compressBytes(bytes).then(function (compressed) {
+        return compressed.length < bytes.length
+          ? { data: compressed, z: 1 }
+          : { data: bytes, z: 0 };
+      }).then(function (pack) {
+        return crypto.subtle.importKey(
+          'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']
+        ).then(function (km) {
+          return crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt: salt, iterations: ITERATIONS, hash: 'SHA-256' },
+            km,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['encrypt', 'decrypt']
+          );
+        }).then(function (key) {
+          return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, pack.data);
+        }).then(function (ctBuf) {
+          return {
+            salt: bytesToB64(salt),
+            iv: bytesToB64(iv),
+            ct: bytesToB64(new Uint8Array(ctBuf)),
+            z: pack.z
+          };
+        });
       });
     });
   }
@@ -337,6 +358,10 @@
     '  var LABEL = "Unlock & download";',
     '  function b64ToBytes(b64){var s=atob(b64);var u=new Uint8Array(s.length);',
     '    for(var i=0;i<s.length;i++){u[i]=s.charCodeAt(i);}return u;}',
+    '  function decompress(buf){var ds=new DecompressionStream("gzip");',
+    '    var w=ds.writable.getWriter();',
+    '    w.write(buf); w.close();',
+    '    return new Response(ds.readable).arrayBuffer();}',
     '  var form=document.getElementById("unlock");',
     '  var pw=document.getElementById("pw");',
     '  var err=document.getElementById("err");',
@@ -356,14 +381,17 @@
     '          {name:"AES-GCM",iv:b64ToBytes(CONFIG.payload.iv)},key,b64ToBytes(CONFIG.payload.ct));',
     '      })',
     '      .then(function(pt){',
-    '        var blob=new Blob([pt],{type:CONFIG.payload.type||"application/octet-stream"});',
-    '        var a=document.createElement("a");',
-    '        var url=URL.createObjectURL(blob);',
-    '        a.href=url; a.download=CONFIG.payload.name||"download";',
-    '        document.body.appendChild(a); a.click();',
-    '        setTimeout(function(){URL.revokeObjectURL(url); a.remove();},1000);',
-    '        note.textContent="Download started. If nothing happened, check your browser download settings.";',
-    '        note.hidden=false;',
+    '        var data = CONFIG.payload.z ? decompress(pt) : Promise.resolve(pt);',
+    '        return data.then(function(final){',
+    '          var blob=new Blob([final],{type:CONFIG.payload.type||"application/octet-stream"});',
+    '          var a=document.createElement("a");',
+    '          var url=URL.createObjectURL(blob);',
+    '          a.href=url; a.download=CONFIG.payload.name||"download";',
+    '          document.body.appendChild(a); a.click();',
+    '          setTimeout(function(){URL.revokeObjectURL(url); a.remove();},1000);',
+    '          note.textContent="Download started. If nothing happened, check your browser download settings.";',
+    '          note.hidden=false;',
+    '        });',
     '      })',
     '      .catch(function(){',
     '        err.textContent="Incorrect password.";',
@@ -542,6 +570,7 @@
         salt: payload.salt,
         iv: payload.iv,
         ct: payload.ct,
+        z: payload.z,
         name: file.name,
         type: file.type
       });
