@@ -132,6 +132,11 @@ or static hosting such as Cloudflare Pages. The page works fully offline once
 loaded; the only network requests are the legal/privacy/learn-more links,
 which the visitor may or may not click.
 
+Generated files reconstruct a download in-browser (JavaScript Blob + download
+attribute). This matches MITRE ATT&CK T1027.006 and will be flagged/quarantined
+by AV, EDR, and mail filters. For managed environments, prefer a hosted
+decryptor page plus a separate encrypted blob.
+
 Generated output files are produced locally and uploaded by hand whenever a
 new protected document is needed. They do not need automation, so they are
 never deployed by CI.
@@ -143,7 +148,9 @@ never deployed by CI.
 The builder is deployed to Cloudflare Pages by
 `.github/workflows/deploy-builder.yml` on every push to `main`, using
 Cloudflare's `wrangler-action`. Output files live in a separate Pages project;
-this workflow never touches them and vice versa.
+this workflow never touches them and vice versa. The deploy workflow must fail
+if `LEARN_MORE_URL` is unset; the committed `PROJECT_OWNER` fallback is a
+placeholder and must never ship.
 
 #### Before the first deploy
 
