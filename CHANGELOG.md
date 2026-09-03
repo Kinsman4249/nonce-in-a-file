@@ -9,9 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added `PRIVACY.md`, documenting that the builder and generated output files collect no data and make no network requests beyond optional footer links.
+
 ### Changed
 
 - The "Learn more" button is now always included in every generated output file and cannot be turned off in the builder, so no protected file can omit the link back to the project origin.
+- Default footer links in the builder now point at this repository's docs: the Legal button defaults to `LICENSE` and the Privacy button defaults to `PRIVACY.md` instead of `example.com` placeholders.
 
 ### Deprecated
 

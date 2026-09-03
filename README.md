@@ -147,5 +147,6 @@ Apache License 2.0. Source code is at
 - [CONTRIBUTING.md](./CONTRIBUTING.md) - how to report bugs, propose features,
   and submit changes.
 - [SECURITY.md](./SECURITY.md) - how to report a vulnerability.
+- [PRIVACY.md](./PRIVACY.md) - what data the project does and does not collect.
 - [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) - the standards this project
   holds contributors to.
