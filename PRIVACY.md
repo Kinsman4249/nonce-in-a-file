@@ -10,6 +10,10 @@ not intent.
 - Opening and using the builder, and unlocking a protected file, happens
   entirely in your browser. No files, passwords, or content are uploaded.
 - The project has no backend, no API routes, no database, and no analytics.
+- An optional, opt-in local address book can store the public keys you have
+  generated or shared in this browser's local storage. It holds public
+  material only, never private keys, and never leaves your device except when
+  you explicitly export it as a JSON file.
 - The only network requests a generated output file can make are the footer
   links (legal, privacy, "Learn more"), which the visitor may or may not click.
 
@@ -18,6 +22,16 @@ not intent.
 Nothing. The builder is a single static HTML page. All file selection and
 encryption happen locally using the browser's Web Crypto API. The file you
 choose, the password you set, and the generated output are never transmitted.
+
+## The local ECDH address book (opt-in only)
+
+The builder can remember the ECDH public keys you have generated or imported so
+you can add them as recipients without pasting them again. This is an opt-in
+feature: nothing is written to your device until you click "Save above public
+key" or "Import keyring JSON", and it stores only public keys (never private
+keys or passwords). The address book lives in your browser's local storage and
+is not sent anywhere. The only way it leaves your device is a JSON file you
+explicitly download with "Export keyring JSON".
 
 ## What a protected file collects
 
@@ -42,6 +56,13 @@ visitor. The legal and privacy link destinations are chosen by whoever generated
 the file, so a protected file you receive could point to that generator's own
 pages rather than these defaults. Check the link targets before clicking if you
 care where they lead.
+
+A planned, optional "sponsor" build mode could add a distinctly styled region
+to a generated page that fetches an external ad tag, but such a mode is not
+implemented, is off by default, and can only ever be enabled explicitly when a
+file is generated. If it ships, it would be the one case where a protected page
+itself makes a background network request, and it would never touch decrypted
+content. This policy will be amended before that mode is enabled on any build.
 
 ## Data retention and deletion
 

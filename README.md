@@ -35,8 +35,9 @@ double-clicked from local disk.
   parameters (`t`/`m`/`p` for Argon2id, `iters`/`hash` for PBKDF2) in the
   payload header, and the embedded decryptor reads those values rather than
   assuming a hardcoded scheme. Raising the work factor or switching KDF later
-  never breaks previously generated files. Files carry a format version
-  (`"v": 3`).
+never breaks previously generated files. Files carry a format version
+   (`"v": 4`); multi-file bundles use v4, while a single-file build keeps the
+   v3-style encrypted envelope so existing files and recipients open unchanged.
 - Key commitment: each wrapped copy of the data key ships with a commitment
   tag (SHA-256 of the recipient's commit key + the wrapped key). A recipient
   only proceeds if the tag they recompute from their own key matches, which
@@ -64,6 +65,12 @@ double-clicked from local disk.
   so the output keeps working offline, and every `<` character is removed so an
   uploaded stylesheet cannot close the built-in style block and inject markup or
   script into the generated file.
+- A build is self-verified before download: the builder re-derives each
+  recipient's key and decrypts the ciphertext with the same primitives the
+  decryptor uses, and aborts if the plaintext does not come back intact. The
+  generated decryptor also hard-caps attacker-controlled KDF parameters,
+  distinguishes a corrupted file from a wrong password, and signs the IV
+  together with the ciphertext.
 
 The "Learn more" button is included in every output file and cannot be turned
 off. Its destination is fixed in the builder (see `LEARN_MORE_URL` in
@@ -83,18 +90,25 @@ committed to the repo. Leave `LOGO_URL` unset (or empty) to keep the padlock.
 ### Creating a protected file
 
 1. Open the builder page in a browser.
-2. Choose the file to protect and set a password (the page requires at least 12
-   characters, an estimated ~64 bits of entropy, and rejects well-known
-   passwords; there is no way to recover it).
+2. Choose one or more files to protect (or drop them onto the File card) and
+   set a password, confirming it exactly. A "Generate strong password" button
+   fills a strong password and its confirmation for you. The page requires at
+   least 12 characters, an estimated ~64 bits of entropy, and rejects
+   well-known passwords; there is no way to recover it. You can also switch to
+   secret/note mode to protect a pasted message instead of a file.
 3. Password recipients are derived with Argon2id by default. Only if you need a
    FIPS-listed KDF, and have no password of your own to derive against, switch
-   the "Key derivation" selector on the recipients card to PBKDF2 mode.
+   the "Key derivation" selector on the recipients card to PBKDF2 mode. Saved
+   public keys from the optional local address book can be added as recipients
+   without pasting them again.
 4. Adjust branding as needed. Every element (logo, banner, heading,
    description, lock icon, legal/privacy buttons, custom CSS) has an
    independent on/off toggle applied at generation time. The Learn more button
    is always included and cannot be turned off.
-5. Click "Build protected file". The page downloads a `.html` file that
-   decrypts and downloads your original when the correct password is entered.
+5. Click "Build protected file". The page downloads a `.html` file that,
+   when the correct password is entered, downloads your original file - or, for
+   a multi-file bundle, shows a file list with per-file download buttons and a
+   "Download all" action.
 
 ### Sending or hosting a protected file
 
