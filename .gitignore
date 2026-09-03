@@ -9,3 +9,9 @@ todo.md
 # optional LOGO_URL variables into builder-dist/index.html, then deploys it.
 # Never commit it.
 builder-dist/
+
+# Playwright MCP tooling artifacts (page snapshots, console logs)
+.playwright-mcp/
+
+# Local build/test screenshots
+*.png

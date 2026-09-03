@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nonce in a File - Protected document builder</title>
+<link rel="icon" href="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns='http%3A//www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2394a3b8'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3'%20y='11'%20width='18'%20height='11'%20rx='2'%20ry='2'/%3E%3Cpath%20d='M7%2011V7a5%205%200%200%201%2010%200v4'/%3E%3C/svg%3E">
 <style>
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
@@ -1668,6 +1669,10 @@
   // -------------------------------------------------------------------------
   var mark = document.getElementById('topMark');
   mark.src = DEFAULT_LOGO;
+  // Keep the browser-tab favicon in sync with the top-left mark, so both use
+  // the same image even when an owner sets LOGO_URL (a hosted or data logo).
+  var fav = document.querySelector('link[rel="icon"]');
+  if (fav) { fav.href = mark.src; }
   document.title = BUILDER_TITLE;
 
   // Collapsible optional sections: clicking a card header expands/collapses
