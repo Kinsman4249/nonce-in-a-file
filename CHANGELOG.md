@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Planned (not yet built)
+
+- Email integrations: an Outlook (Microsoft 365) Office.js add-in ("Protect attachments" task-pane that runs the builder logic client-side, swaps the attachment for the self-decrypting `.html`, and stamps an internet header such as `X-NonceInAFile-V`, wired to `OnMessageSend` auto-protect and `OnMessageDecrypt` for add-in-equipped recipients), a Gmail path (Chrome/Edge extension content-script button or a Google Workspace add-on via Apps Script), and local auto-protect heuristics that offer to protect before send when an attachment filename looks sensitive (confidential, salary, ssn, pan, draft). Deciding "attachment vs hosted link" requires the cloud-infra bucket.
+- Cloud-infra roadmap: recovery-key escrow and emergency access (needs accounts, server key management, storage); hosted share links (a site-side counter Worker plus Pages-hosted outputs with expiry/revocation, max-open / burn-after-read, manual burn, download receipts, email notifications); email delivery of unlock links with read receipts and audit logs; one-time unlock codes over email/SMS with no password out of band; server-side rate limiting and abuse controls, download counting, optional geofencing and a WebAuthn bot-shield on the hosted unlock page; and accounts with cross-device keyring sync.
+- An optional, off-by-default ad-supported build mode. When enabled at build time it adds a distinctly styled "Sponsor" region; ads never appear in decrypted content, the mode requires an external network tag so it must stay opt-in and be documented in `PRIVACY.md`, and it needs an ad-slot and provider decision before any implementation.
+- A multi-language UI (English plus German/Spanish/French for the builder and generated files), a plaintext SHA-256 fingerprint shown on the unlock page, a printable handout, browser "Send via Web Share" for the generated file, and an optional CLI wrapper artifact.
+
 ## [1.3.0] - 2026-09-03
 
 ### Added
@@ -17,9 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added an optional `BUILDER_TITLE` GitHub Actions repository variable that changes the builder page's browser-tab title at deploy time; the committed default title is used when the variable is unset. It works like `LEARN_MORE_URL`/`LOGO_URL` (staged in `builder-dist`, never aborts the deploy).
 - The optional builder cards (Recipients, Signing, Branding, Links, Custom CSS) are now collapsible and start collapsed, so the required File section stays front and centre; clicking a card header expands or collapses it.
 - Added a live match check for the confirm-password field that tints the box green when it matches the password and red with a message when it does not, so a recipient typo is caught before the file is built.
-- Planned (not yet built): email integrations - an Outlook (Microsoft 365) Office.js add-in ("Protect attachments" task-pane that runs the builder logic client-side, swaps the attachment for the self-decrypting .html, and stamps an internet header such as `X-NonceInAFile-V`, wired to `OnMessageSend` auto-protect and `OnMessageDecrypt` for add-in-equipped recipients), a Gmail path (Chrome/Edge extension content-script button or a Google Workspace add-on via Apps Script), and local auto-protect heuristics that offer to protect before send when an attachment filename looks sensitive (confidential, salary, ssn, pan, draft). Deciding "attachment vs hosted link" requires the cloud-infra bucket.
-- Planned (not yet built), cloud-infra roadmap: recovery-key escrow and emergency access (needs accounts, server key management, storage); hosted share links (a site-side counter Worker plus Pages-hosted outputs with expiry/revocation, max-open / burn-after-read, manual burn, download receipts, email notifications); email delivery of unlock links with read receipts and audit logs; one-time unlock codes over email/SMS with no password out of band; server-side rate limiting and abuse controls, download counting, optional geofencing and a WebAuthn bot-shield on the hosted unlock page; and accounts with cross-device keyring sync.
-- Planned (not yet built): an optional, off-by-default ad-supported build mode. When enabled at build time it adds a distinctly styled "Sponsor" region; ads never appear in decrypted content, the mode requires an external network tag so it must stay opt-in and be documented in `PRIVACY.md`, and it needs an ad-slot and provider decision before any implementation.
 
 ### Changed
 
@@ -51,10 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added a secret/note mode: protect a pasted written message instead of choosing a file; it is bundled as a `text/plain` document named `note.txt`.
 - Added an opt-in local ECDH address book kept only in the browser: save, import, and export public keys and add a saved public key as a recipient. It stores public material only and never leaves the device except through an explicit export download.
 - Added progress feedback during a build: an indeterminate bar with an elapsed-seconds readout and a note that compression and Argon2id can take a moment on large files.
-- Planned (not yet built): an auto-protect workflow - like SafeGuard's Outlook add-in that auto-detects external attachments and offers to password-protect them - as a natural integration for a Gmail / Outlook Online production build, so a sender never ships an unencrypted attachment by accident.
-- Planned (not yet built): a multi-language UI (English plus German/Spanish/French for the builder and generated files), a plaintext SHA-256 fingerprint shown on the unlock page, a printable handout, browser "Send via Web Share" for the generated file, and an optional CLI wrapper artifact.
-- Planned (not yet built), cloud-infra roadmap: Outlook (Microsoft 365) Office.js and Gmail integrations, hosted share links with expiry/revocation and burn-after-read, recovery-key escrow and emergency access, unlock links via email or SMS, access and read-receipt logging, and accounts with cross-device keyring sync.
-- Planned (not yet built): an optional, off-by-default ad-supported build mode. When enabled at build time it adds a distinctly styled sponsor region that requires an external network tag, so it is never on by default and is documented in `PRIVACY.md` as the one case where a protected page can make a background request.
 
 ### Changed
 
