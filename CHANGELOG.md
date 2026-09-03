@@ -14,6 +14,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - An optional, off-by-default ad-supported build mode. When enabled at build time it adds a distinctly styled "Sponsor" region; ads never appear in decrypted content, the mode requires an external network tag so it must stay opt-in and be documented in `PRIVACY.md`, and it needs an ad-slot and provider decision before any implementation.
 - A multi-language UI (English plus German/Spanish/French for the builder and generated files), a plaintext SHA-256 fingerprint shown on the unlock page, a printable handout, browser "Send via Web Share" for the generated file, and an optional CLI wrapper artifact.
 
+## [1.4.0] - 2026-09-03
+
+### Added
+
+- Generated files now offer a "Share this file" toggle when opened over a
+  hosted `http(s)` URL. Expanding it renders a QR code of that page's URL,
+  generated fully offline with an embedded MIT-licensed encoder and drawn as
+  inline SVG (no network request, no external service), so a visitor can open
+  the file on a phone by scanning it. The share toggle is hidden entirely for
+  a `file://` view, which has no shareable URL. The QR encoder was vendored as
+  a permissive-MIT bundle (`builder/vendor/qrcode.js`) and is inlined into
+  every output as a base64 constant with a pinned SHA-256, mirroring the
+  existing Argon2 bundle; `jsqr` (Apache-2.0) was added as a test-only decoder
+  and never ships in outputs. See `THIRD_PARTY_NOTICES.md`.
+- The Legal and Privacy buttons in every generated file are now fixed and
+  always included, exactly like the "Learn more" button, and can no longer be
+  toggled or overridden by the builder's user. Their destinations are
+  hardcoded in `builder/index.html` (`LEGAL_URL`/`PRIVACY_URL`) and default to
+  this project's own LICENSE and PRIVACY pages on GitHub; the deploy workflow
+  can override them via optional `LEGAL_URL`/`PRIVACY_URL` GitHub Actions
+  variables (applied only when set, never fails the deploy). The builder's
+  Links card now shows these fixed destinations instead of editable fields,
+  and the Legal and Privacy cards are never turned off in the UI.
+
+### Changed
+
+- The optional builder cards (Recipients, Signing, Branding, Links, Custom
+  CSS) now render with Branding and Links above Recipients and Signing, so the
+  frequently-used branding controls sit closer to the required File section.
+- The collapsible-card toggle is now bound directly to each card header
+  (instead of a single delegated document listener), so clicking any header
+  reliably expands or collapses its own card.
+
 ## [1.3.0] - 2026-09-03
 
 ### Added
