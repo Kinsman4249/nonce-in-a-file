@@ -5,6 +5,7 @@ todo.md
 .kilo/
 .kilo
 
-# CI-staged builder copy: the deploy workflow injects the LEARN_MORE_URL
-# variable into builder-dist/index.html, then deploys it. Never commit it.
+# CI-staged builder copy: the deploy workflow injects the LEARN_MORE_URL and
+# optional LOGO_URL variables into builder-dist/index.html, then deploys it.
+# Never commit it.
 builder-dist/

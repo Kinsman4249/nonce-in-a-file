@@ -175,14 +175,18 @@
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
-  // Grey padlock used as the default banner mark in the top-left of every
-  // generated file.
-  var DEFAULT_LOGO = svgUri(
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'" +
-    " stroke='#94a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
-    "<rect x='3' y='11' width='18' height='11' rx='2' ry='2'/>" +
-    "<path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>"
-  );
+  // Optional top-left banner mark. When LOGO_URL is set (by CI from the
+  // LOGO_URL repository variable), that URL is used verbatim as the mark every
+  // generated file shows in the top-left, so an owner can use their own hosted
+  // logo without committing it. When empty, fall back to the grey padlock.
+  var LOGO_URL = '';
+  var DEFAULT_LOGO = LOGO_URL ||
+    svgUri(
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'" +
+      " stroke='#94a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<rect x='3' y='11' width='18' height='11' rx='2' ry='2'/>" +
+      "<path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>"
+    );
 
   // Coloured lock shown as the center lock icon on the generated file.
   var DEFAULT_LOCK = svgUri(

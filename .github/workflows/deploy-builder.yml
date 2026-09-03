@@ -32,14 +32,17 @@ jobs:
           fetch-depth: 1
 
       # The builder is pure static HTML/CSS/JS with no compile step, so its
-      # source directory is almost its deployable output. The one exception is
-      # the fixed "Learn more" origin: it is injected just-in-time here from the
-      # LEARN_MORE_URL repository variable so the owner can change it without
-      # editing and committing source. We stage a copy (builder-dist, gitignored)
-      # rather than mutating the tracked file, then deploy the staged copy.
-      - name: Stage builder and inject Learn More URL
+      # source directory is almost its deployable output. The exceptions are
+      # injected just-in-time here from repository variables so the owner can
+      # change them without editing and committing source: the fixed "Learn
+      # more" origin (LEARN_MORE_URL, required) and the optional top-left logo
+      # (LOGO_URL, applied only when set). We stage a copy (builder-dist,
+      # gitignored) rather than mutating the tracked file, then deploy the
+      # staged copy.
+      - name: Stage builder and inject Learn More URL and optional logo
         env:
           LEARN_MORE_URL: ${{ vars.LEARN_MORE_URL }}
+          LOGO_URL: ${{ vars.LOGO_URL }}
         shell: bash
         run: |
           set -euo pipefail
@@ -65,6 +68,30 @@ jobs:
             fs.writeFileSync(file,s.slice(0,b)+url+s.slice(c));
             console.log('Staged builder with LEARN_MORE_URL -> '+url);
           " builder-dist/index.html
+
+          # Optional top-left logo: inject LOGO_URL only when the repository
+          # variable is set. When unset, leave the placeholder empty so the
+          # committed grey padlock stays the default mark in every generated
+          # file. Unlike LEARN_MORE_URL this never aborts the deploy.
+          if [[ -n "${LOGO_URL:-}" ]]; then
+            node -e "
+              var fs=require('fs');
+              var file=process.argv[1];
+              var url=process.env.LOGO_URL;
+              var s=fs.readFileSync(file,'utf8');
+              var key='LOGO_URL = ';
+              var a=s.indexOf(key);
+              var q=String.fromCharCode(39);
+              var b=s.indexOf(q,a)+1;
+              var c=s.indexOf(q,b);
+              if(a<0||b<=0||c<0){ console.error('LOGO_URL variable not found in '+file); process.exit(1); }
+              if(s.indexOf(url)!==-1){ console.log('LOGO_URL already '+url+' in staged copy'); }
+              fs.writeFileSync(file,s.slice(0,b)+url+s.slice(c));
+              console.log('Staged builder with LOGO_URL -> '+url);
+            " builder-dist/index.html
+          else
+            echo "LOGO_URL not set; keeping the default grey padlock mark."
+          fi
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4

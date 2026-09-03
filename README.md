@@ -46,6 +46,11 @@ any user input or upload - this is the single origin a recipient can check to
 confirm a file really came from this project. To change that origin, edit the
 `LEARN_MORE_URL` variable; no source change or commit is required.
 
+The top-left banner mark defaults to a grey padlock. If you keep a logo on your
+own site or CDN, set the optional `LOGO_URL` GitHub Actions **variable** to its
+URL and every generated file will use it instead of the padlock - no image is
+committed to the repo. Leave `LOGO_URL` unset (or empty) to keep the padlock.
+
 ## Usage
 
 ### Creating a protected file
@@ -91,6 +96,10 @@ this workflow never touches them and vice versa.
    - The deploy workflow injects it into the deployed builder on every push to
      `main`. If the variable is missing, the deploy aborts rather than ship a
      placeholder destination. Set it before the first push.
+   - Optional: add another variable named `LOGO_URL` (a URL) to replace the
+     default grey padlock banner mark with your hosted logo. It is applied
+     only when set; the deploy never fails over it, and no logo file is
+     committed to the repo.
 
 2. Create a Cloudflare API token (a secret, unlike the variable above) with the
    least privilege needed:
