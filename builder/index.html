@@ -118,8 +118,7 @@
       <div class="field"><label>URL</label><input type="url" id="privacyUrl" value="https://example.com/privacy"></div>
     </div>
 
-    <label class="toggle"><input type="checkbox" id="showLearn" checked> Learn more button</label>
-    <p class="hint">The visit destination is fixed by this builder and cannot be overridden (see below).</p>
+    <p class="hint">Learn more button: always included in every output and cannot be turned off. The visit destination is fixed by this builder and cannot be overridden (see below).</p>
     <div class="fixed" id="learnFixed"></div>
   </section>
 
@@ -151,8 +150,8 @@
   // THIS is the single source an output file links back to so a recipient can
   // confirm a protected file really came from this project. It is deliberately
   // NOT exposed as a form field and cannot be overridden by any upload, input,
-  // or config file. The per-output toggle only controls whether the button is
-  // shown, never where it goes.
+  // or config file. The button is always included in every output and cannot
+  // be turned off, so no generated file can omit the link back to this origin.
   //
   // The value deployed to Cloudflare Pages is overwritten by CI from the
   // GitHub Actions repository VARIABLE named LEARN_MORE_URL (set it in
@@ -410,9 +409,7 @@
     if (o.showPrivacy) {
       footer.push('<a href="' + esc(o.privacy.url) + '" target="_blank" rel="noopener">' + esc(o.privacy.label) + '</a>');
     }
-    if (o.showLearn) {
-      footer.push('<a href="' + esc(LEARN_MORE_URL) + '" target="_blank" rel="noopener">Learn more</a>');
-    }
+    footer.push('<a href="' + esc(LEARN_MORE_URL) + '" target="_blank" rel="noopener">Learn more</a>');
     var foot = footer.length ? '<div class="foot">' + footer.join('') + '</div>' : '';
 
     return [
@@ -509,7 +506,6 @@
       showLock: document.getElementById('showLock').checked,
       showLegal: document.getElementById('showLegal').checked,
       showPrivacy: document.getElementById('showPrivacy').checked,
-      showLearn: document.getElementById('showLearn').checked,
       legal: {
         label: document.getElementById('legalLabel').value || 'Legal',
         url: document.getElementById('legalUrl').value

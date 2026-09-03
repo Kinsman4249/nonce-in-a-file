@@ -35,14 +35,13 @@ double-clicked from local disk.
   never stored or embedded. There is no recovery mechanism, so the owner must
   keep a copy of any password they use.
 
-The "Learn more" destination baked into every output file is fixed in the
-builder (see `LEARN_MORE_URL` in `builder/index.html`). Its value is injected
-at deploy time from the GitHub Actions repository **variable** named
-`LEARN_MORE_URL`, and its label can be toggled on or off per build, but its
-destination can never be overridden by any user input or upload - this is the
-single origin a recipient can check to confirm a file really came from this
-project. To change that origin, edit the `LEARN_MORE_URL` variable; no source
-change or commit is required.
+The "Learn more" button is included in every output file and cannot be turned
+off. Its destination is fixed in the builder (see `LEARN_MORE_URL` in
+`builder/index.html`) and injected at deploy time from the GitHub Actions
+repository **variable** named `LEARN_MORE_URL`; it can never be overridden by
+any user input or upload - this is the single origin a recipient can check to
+confirm a file really came from this project. To change that origin, edit the
+`LEARN_MORE_URL` variable; no source change or commit is required.
 
 ## Usage
 
@@ -52,8 +51,9 @@ change or commit is required.
 2. Choose the file to protect and set a password (the page recommends at least
    8 characters and there is no way to recover it).
 3. Adjust branding as needed. Every element (logo, banner, heading,
-   description, lock icon, legal/privacy/learn-more buttons, custom CSS) has an
-   independent on/off toggle applied at generation time.
+   description, lock icon, legal/privacy buttons, custom CSS) has an
+   independent on/off toggle applied at generation time. The Learn more button
+   is always included and cannot be turned off.
 4. Click "Build protected file". The page downloads a `.html` file that
    decrypts and downloads your original when the correct password is entered.
 
@@ -61,8 +61,8 @@ change or commit is required.
 
 Share the generated `.html` however you like - file attachment, WeTransfer,
 or static hosting such as Cloudflare Pages. The page works fully offline once
-loaded; the only network requests are the optional legal/privacy/learn-more
-links, which the visitor may or may not click.
+loaded; the only network requests are the legal/privacy/learn-more links,
+which the visitor may or may not click.
 
 Generated output files are produced locally and uploaded by hand whenever a
 new protected document is needed. They do not need automation, so they are

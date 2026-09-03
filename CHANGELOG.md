@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The "Learn more" button is now always included in every generated output file and cannot be turned off in the builder, so no protected file can omit the link back to the project origin.
+
 ### Deprecated
 
 ### Removed
