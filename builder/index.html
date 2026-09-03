@@ -17,6 +17,14 @@
   .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
   .card h2{font-size:16px;font-weight:700;margin:0 0 4px}
   .card .sub{font-size:13px;color:#6b7280;margin:0 0 18px}
+  .card.collapsible{padding:0}
+  .card.collapsible .card-head{display:flex;align-items:center;gap:10px;padding:20px 24px;cursor:pointer;user-select:none;background:none;border:0;width:100%;text-align:left;font:inherit}
+  .card.collapsible .card-head h2{margin:0}
+  .card.collapsible .card-head:hover h2{color:#b166b1}
+  .card.collapsible .caret{margin-left:auto;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #9ca3af;transition:transform .15s ease;flex:0 0 auto}
+  .card.collapsible .card-body{padding:0 24px 24px}
+  .card.collapsible.collapsed .card-body{display:none}
+  .card.collapsible.collapsed .caret{transform:rotate(-90deg)}
   .field{margin-bottom:16px}
   .field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
   .field input[type=text],.field input[type=password],.field input[type=url],.field input[type=color],
@@ -57,6 +65,10 @@
   .pw-hint{margin:8px 0 0;font-size:12px;color:#6b7280}
   .pw-hint.weak{color:#b91c1c}
   .pw-hint.ok{color:#0f766e}
+  .match-ok{color:#0f766e;font-weight:600}
+  .field input.match{background:#f0fdfa;border-color:#14b8a6}
+  .field input.mismatch{background:#fef2f2;border-color:#dc2626}
+  .mismatch-msg{color:#b91c1c;font-weight:600}
 </style>
 </head>
 <body>
@@ -89,7 +101,7 @@
     <div class="field">
       <label for="password2">Confirm password</label>
       <input type="password" id="password2" autocomplete="new-password" required>
-      <p class="pw-hint">Must match the password above exactly. A typo here is the most common way a protected file becomes impossible to open.</p>
+      <p class="pw-hint" id="confirmHint">Must match the password above exactly. A typo here is the most common way a protected file becomes impossible to open.</p>
     </div>
     <div class="row">
       <button type="button" id="genPw" class="mini">Generate strong password</button>
@@ -97,8 +109,12 @@
     </div>
   </section>
 
-  <section class="card">
-    <h2>Recipients / key ring (optional)</h2>
+  <section class="card collapsible collapsed">
+    <button type="button" class="card-head" aria-expanded="false">
+      <span class="caret" aria-hidden="true"></span>
+      <h2>Recipients / key ring (optional)</h2>
+    </button>
+    <div class="card-body">
     <p class="sub">Encrypt one file to several recipients at once. The ciphertext is wrapped once per recipient, so the built file opens for any of them. You can mix passwords and public keys. This is what lets you send a file to someone's key instead of a password over chat.</p>
     <div class="field">
       <label for="kdfScheme">Key derivation for password recipients</label>
@@ -134,10 +150,15 @@
         <input type="file" id="keyringImport" accept=".json,application/json" style="display:none">
       </div>
     </div>
+    </div>
   </section>
 
-  <section class="card">
-    <h2>Signing (optional)</h2>
+  <section class="card collapsible collapsed">
+    <button type="button" class="card-head" aria-expanded="false">
+      <span class="caret" aria-hidden="true"></span>
+      <h2>Signing (optional)</h2>
+    </button>
+    <div class="card-body">
     <p class="sub">Sign the ciphertext with an ECDSA P-256 key so a recipient can verify the file came from you and was not altered. The public key travels inside the built file; the decryptor verifies the detached signature and shows a verified badge.</p>
     <label class="toggle"><input type="checkbox" id="enableSign"> Sign this file</label>
     <div class="field">
@@ -150,10 +171,15 @@
       <p class="hint">Keep the private key. Recipients only learn its public half (embedded in each signed file).</p>
     </div>
     <button type="button" id="genSign" class="mini">Generate a signing private key</button>
+    </div>
   </section>
 
-  <section class="card">
-    <h2>Branding</h2>
+  <section class="card collapsible collapsed">
+    <button type="button" class="card-head" aria-expanded="false">
+      <span class="caret" aria-hidden="true"></span>
+      <h2>Branding</h2>
+    </button>
+    <div class="card-body">
     <p class="sub">Every visible element can be toggled on or off for this build, and colors/text default to the project theme.</p>
 
     <label class="toggle"><input type="checkbox" id="showLogo" checked> Logo</label>
@@ -187,10 +213,15 @@
       <label for="lockFile">Lock icon image (optional; falls back to the default icon). Turn off for a text-only password prompt.</label>
       <input type="file" id="lockFile" accept="image/*">
     </div>
+    </div>
   </section>
 
-  <section class="card">
-    <h2>Links</h2>
+  <section class="card collapsible collapsed">
+    <button type="button" class="card-head" aria-expanded="false">
+      <span class="caret" aria-hidden="true"></span>
+      <h2>Links</h2>
+    </button>
+    <div class="card-body">
     <p class="sub">Legal, privacy, and learn-more buttons. They open in a new tab when the visitor clicks them.</p>
 
     <label class="toggle"><input type="checkbox" id="showLegal" checked> Legal button</label>
@@ -207,10 +238,15 @@
 
     <p class="hint">Learn more button: always included in every output and cannot be turned off. The visit destination is fixed by this builder and cannot be overridden (see below).</p>
     <div class="fixed" id="learnFixed"></div>
+    </div>
   </section>
 
-  <section class="card">
-    <h2>Custom CSS</h2>
+  <section class="card collapsible collapsed">
+    <button type="button" class="card-head" aria-expanded="false">
+      <span class="caret" aria-hidden="true"></span>
+      <h2>Custom CSS</h2>
+    </button>
+    <div class="card-body">
     <p class="sub">Optional extra stylesheet, inlined into the output after the built-in theme so it can override it. External requests are stripped so the file stays self-contained and works offline.</p>
     <label class="toggle"><input type="checkbox" id="showCustom" checked> Apply custom CSS</label>
     <div class="field">
@@ -218,6 +254,7 @@
       <input type="file" id="cssFile" accept=".css,text/css">
     </div>
     <div class="warnings" id="warnings"></div>
+    </div>
   </section>
 
   <div class="actions">
@@ -236,23 +273,41 @@
   'use strict';
 
   // =========================================================================
-  // FIXED "learn more" destination.
+  // Two separate destinations travel in every generated file.
   //
-  // THIS is the single source an output file links back to so a recipient can
-  // confirm a protected file really came from this project. It is deliberately
-  // NOT exposed as a form field and cannot be overridden by any upload, input,
-  // or config file. The button is always included in every output and cannot
-  // be turned off, so no generated file can omit the link back to this origin.
+  // 1. LEARN_MORE_URL - the fixed "Learn more" link every output includes, so
+  //    a recipient can confirm a protected file really came from this project.
+  //    This is deliberately NOT exposed as a form field and cannot be
+  //    overridden by any upload, input, or config file. The value deployed to
+  //    Cloudflare Pages is overwritten by CI from the GitHub Actions
+  //    repository VARIABLE named LEARN_MORE_URL (set it in Settings > Secrets
+  //    and variables > Actions > Variables). This committed string is only the
+  //    fallback that renders if the variable is unset; because the deploy
+  //    workflow fails on an unset variable, this placeholder never ships
+  //    unless you remove that check. To change the destination a recipient
+  //    sees, edit the repository variable - no source change or commit is
+  //    required. A fork can point it at its own project page. The button is
+  //    always included in every output and cannot be turned off, so no
+  //    generated file can omit the link back to that origin.
   //
-  // The value deployed to Cloudflare Pages is overwritten by CI from the
-  // GitHub Actions repository VARIABLE named LEARN_MORE_URL (set it in
-  // Settings > Secrets and variables > Actions > Variables). This committed
-  // string is only the fallback that render if the variable is unset; because
-  // the deploy workflow fails on an unset variable, this placeholder never
-  // ships unless you remove that check. To change the origin a recipient sees,
-  // edit the repository variable - no source change or commit is required.
+  // 2. BUILDER_ORIGIN - the http(s) origin this builder page itself is served
+  //    from, auto-detected from location.origin at build time (empty for a
+  //    local file:// copy, whose origin is not an http(s) URL). Every
+  //    generated file shows it as a visible, clickable "built by" line so a
+  //    recipient can see which deployment/infra produced the file; a local
+  //    copy renders the same line as plain text, noting there is no hosting
+  //    origin. This is provenance only and is entirely separate from the
+  //    Learn more link.
   // =========================================================================
   var LEARN_MORE_URL = 'https://github.com/PROJECT_OWNER/nonce-in-a-file';
+  var BUILDER_ORIGIN = /^https?:$/i.test(String(typeof location === 'undefined' ? '' : location.protocol))
+    ? String(location.origin || '').replace(/\/+$/, '')
+    : '';
+
+  // Builder page tab title. CI overwrites this from the optional BUILDER_TITLE
+  // repository variable; when that variable is unset this committed default is
+  // used verbatim. Only cosmetic - never embedded in generated output files.
+  var BUILDER_TITLE = 'Nonce in a File - Protected document builder';
 
   // -------------------------------------------------------------------------
   // Key-derivation settings. The file format is crypto-agile (see C2): every
@@ -512,6 +567,40 @@
     var mime = /^image\/[a-z0-9.+-]+$/i.test(file.type || '') ? file.type : 'application/octet-stream';
     return readBytes(file).then(function (bytes) {
       return 'data:' + mime + ';base64,' + bytesToB64(bytes);
+    });
+  }
+
+  // Turn a remote http(s) logo into a fully self-contained data URI so the
+  // generated file (whose CSP allows only `img-src data:`) can show it with no
+  // network access. SVGs are embedded as text (`data:image/svg+xml;utf8,`),
+  // both because that keeps them human-readable in the source and because
+  // SVG text is small and unaffected by base64 inflation; every other image
+  // type is embedded as base64. Returns a Promise of a data URI, or null when
+  // the remote image cannot be fetched (e.g. the server sends no CORS headers).
+  // Warnings (optional) receive a human-readable note when it falls back.
+  function remoteToDataUri(url, warnings) {
+    var source = String(url || '');
+    if (!/^https?:/i.test(source)) return Promise.resolve(null);
+    return fetch(source, { credentials: 'omit', mode: 'cors' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var ct = (res.headers.get('content-type') || '').toLowerCase();
+      var looksSvg = ct.indexOf('svg') !== -1 || /\.svg(\?|$)/i.test(source.split('#')[0]);
+      if (looksSvg) {
+        return res.text().then(function (text) {
+          return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(text);
+        });
+      }
+      return res.arrayBuffer().then(function (buf) {
+        var mime = /^image\/[a-z0-9.+-]+$/i.test(ct) ? ct : 'image/png';
+        return 'data:' + mime + ';base64,' + bytesToB64(new Uint8Array(buf));
+      });
+    }).catch(function (err) {
+      if (warnings) {
+        warnings.push('Could not embed the remote logo (' + source + '): ' +
+          (err && err.message ? err.message : 'request failed') +
+          '. The image could not be fetched, likely because the server blocks cross-origin requests. It will not render in generated files, whose CSP permits only embedded data images.');
+      }
+      return null;
     });
   }
 
@@ -1072,6 +1161,9 @@
     '.foot{display:flex;gap:18px;margin-top:40px;flex-wrap:wrap}',
     '.foot a{color:#5a9cfa;text-decoration:none;font-size:14px;font-weight:600}',
     '.foot a:hover{text-decoration:underline}',
+    '.builtby{font-size:12px;color:#9ca3af;margin-top:28px}',
+    '.builtby a{color:#5a9cfa;text-decoration:none;font-weight:600}',
+    '.builtby a:hover{text-decoration:underline}',
     '.sign{font-size:14px;margin:0 0 20px;padding:10px 12px;border-radius:8px}',
     '.sign.ok{color:#0f766e;background:#f0fdfa;border:1px solid #99f6e4}',
     '.sign.bad{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca}',
@@ -1313,27 +1405,31 @@
     '  }',
     '  var sigEl=document.getElementById("signed");',
     '  if(sigEl&&payload.sign){',
-    '    var fp="";',
-    '    crypto.subtle.digest("SHA-256",b64ToBytes(payload.sign.pub)).then(function(d){',
-    '      var b=new Uint8Array(d),h="";for(var i=0;i<8;i++){h+=("0"+b[i].toString(16)).slice(-2);}fp=h;',
+    '    // Compute the 8-byte key fingerprint and the signature verification in',
+    '    // one chain so the badge text is only ever built from the digest result',
+    '    // (no shared mutable fp that could read as empty if digest lags verify).',
+    '    var pubBytes=b64ToBytes(payload.sign.pub);',
+    '    function fpHex(d){var b=new Uint8Array(d),h="";for(var i=0;i<8;i++){h+=("0"+b[i].toString(16)).slice(-2);}return h;}',
+    '    Promise.all([',
+    '      crypto.subtle.digest("SHA-256",pubBytes),',
+    '      crypto.subtle.importKey("spki",pubBytes,',
+    '        {name:"ECDSA",namedCurve:"P-256"},false,["verify"])',
+    '        .then(function(vk){return crypto.subtle.verify(',
+    '          {name:"ECDSA",hash:"SHA-256"},vk,b64ToBytes(payload.sign.sig),',
+    '          concatBytes(new TextEncoder().encode("label:"+((payload.sign&&payload.sign.label)||"")+"\\n"),',
+    '          concatBytes(b64ToBytes(payload.iv),b64ToBytes(payload.ct))));})',
+    '    ]).then(function(ar){',
+    '      var fp=fpHex(ar[0]);',
+    '      sigEl.textContent=ar[1]',
+    '        ? "Signed and verified: from "+(payload.sign.label||"this sender")+" (key "+fp+"). Confirm this key fingerprint with the sender out-of-band. File not altered since signing."',
+    '        : "Warning: signature could not be verified - the file may have been altered or is not from the stated sender. Unlock is still allowed; do not trust the contents.";',
+    '      sigEl.className=ar[1]?"sign ok":"sign bad";',
+    '      sigEl.hidden=false;',
+    '    })',
+    '    .catch(function(){',
+    '      sigEl.textContent="Warning: signature could not be verified.";',
+    '      sigEl.className="sign bad"; sigEl.hidden=false;',
     '    });',
-    '    crypto.subtle.importKey("spki",b64ToBytes(payload.sign.pub),',
-    '      {name:"ECDSA",namedCurve:"P-256"},false,["verify"])',
-    '      .then(function(vk){return crypto.subtle.verify(',
-    '        {name:"ECDSA",hash:"SHA-256"},vk,b64ToBytes(payload.sign.sig),',
-    '        concatBytes(new TextEncoder().encode("label:"+((payload.sign&&payload.sign.label)||"")+"\\n"),',
-    '        concatBytes(b64ToBytes(payload.iv),b64ToBytes(payload.ct))));})',
-    '      .then(function(ok){',
-    '        sigEl.textContent=ok',
-    '          ? "Signed and verified: from "+(payload.sign.label||"this sender")+" (key "+fp+"). Confirm this key fingerprint with the sender out-of-band. File not altered since signing."',
-    '          : "Warning: signature could not be verified - the file may have been altered or is not from the stated sender. Unlock is still allowed; do not trust the contents.";',
-    '        sigEl.className=ok?"sign ok":"sign bad";',
-    '        sigEl.hidden=false;',
-    '      })',
-    '      .catch(function(){',
-    '        sigEl.textContent="Warning: signature could not be verified.";',
-    '        sigEl.className="sign bad"; sigEl.hidden=false;',
-    '      });',
     '  }',
     '})();'
   ].join('\n');
@@ -1345,6 +1441,13 @@
   // -------------------------------------------------------------------------
   function makeOutput(o, payload) {
     var gradient = 'linear-gradient(90deg,' + o.c1 + ',' + o.c2 + ',' + o.c3 + ')';
+    // The top-left logo doubles as the browser-tab favicon: it is already a
+    // data:image URI (allowed by the output CSP's img-src data:), so no
+    // separate icon file is needed and the page stays fully self-contained.
+    // When the logo is disabled, an empty data favicon is used, which also
+    // stops Firefox from auto-fetching /favicon.ico from the origin (img-src
+    // data: forbids it, so the browser would log a CSP violation otherwise).
+    var favicon = o.logo || 'data:,';
 
     var banner = '';
     if (o.showBanner) {
@@ -1398,6 +1501,14 @@
     footer.push('<a href="' + esc(LEARN_MORE_URL) + '" target="_blank" rel="noopener">Learn more</a>');
     var foot = footer.length ? '<div class="foot">' + footer.join('') + '</div>' : '';
 
+    // Visible build provenance, separate from the Learn more link: when the
+    // builder was served over http(s), show its origin as a clickable link so
+    // a recipient can see which deployment/infra produced the file. A local
+    // file:// copy has no origin and is noted as plain text instead.
+    var builtByLine = BUILDER_ORIGIN
+      ? '<p class="builtby">Built by the <a href="' + esc(BUILDER_ORIGIN) + '" target="_blank" rel="noopener">nonce-in-a-file builder</a></p>'
+      : '<p class="builtby">Built by a local copy of the nonce-in-a-file builder</p>';
+
     return [
       '<!DOCTYPE html>',
       '<html lang="en">',
@@ -1406,6 +1517,12 @@
       '<meta charset="utf-8">',
       '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'; script-src \'unsafe-inline\' \'wasm-unsafe-eval\'; connect-src \'none\'; base-uri \'none\'; form-action \'none\'">',
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      // The top-left logo (data:image URI) doubles as the browser-tab favicon,
+      // so the page stays self-contained with no separate icon file (img-src
+      // data: allows it). When the logo is disabled, the empty data favicon
+      // still stops Firefox from auto-fetching /favicon.ico from the origin,
+      // which img-src data: would otherwise report as a CSP violation.
+      '<link rel="icon" href="' + favicon + '">',
       // The title can no longer use the real filename, which is now encrypted
       // with the file; it falls back to the branding heading instead.
       '<title>' + esc(o.heading || 'Protected file') + '</title>',
@@ -1427,6 +1544,7 @@
       '<div id="files" hidden></div>',
       '<p class="note" id="note" hidden></p>',
       foot,
+      builtByLine,
       '</main>',
       // Deploy the Argon2id WASM engine inline so the decryptor (which follows)
       // can run Argon2id with zero network access. The bundle is self-contained:
@@ -1449,7 +1567,23 @@
   // -------------------------------------------------------------------------
   var mark = document.getElementById('topMark');
   mark.src = DEFAULT_LOGO;
-  document.getElementById('learnFixed').textContent = 'Learn more destination (fixed): ' + LEARN_MORE_URL;
+  document.title = BUILDER_TITLE;
+
+  // Collapsible optional sections: clicking a card header expands/collapses
+  // that card's body. The primary File card is never collapsible.
+  document.addEventListener('click', function (ev) {
+    var head = ev.target && ev.target.closest ? ev.target.closest('.card-head') : null;
+    if (!head) { return; }
+    var card = head.closest('.card.collapsible');
+    if (!card) { return; }
+    ev.preventDefault();
+    var collapsed = card.classList.toggle('collapsed');
+    head.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  });
+
+  document.getElementById('learnFixed').textContent = 'Learn more destination (fixed): ' + LEARN_MORE_URL +
+    '. Build provenance: ' + (BUILDER_ORIGIN ? 'this page is hosted at ' + BUILDER_ORIGIN :
+      'this page is a local file:// copy (no hosting origin; output files note the local copy)');
 
   // Preload the Argon2 WASM engine in the background so building is fast.
   loadArgon2().catch(function () {
@@ -1486,6 +1620,31 @@
   pwEl.addEventListener('input', updatePwStrength);
   updatePwStrength();
 
+  // Live match check for the confirm-password field. Tints the box green when
+  // it matches the password, red with a bold message when it does not, so a
+  // recipient typo is caught before the file is built. Empty confirm stays
+  // neutral until the user has typed in it.
+  var confirmEl = document.getElementById('password2');
+  var confirmHintEl = document.getElementById('confirmHint');
+  function updateConfirmMatch() {
+    if (!confirmEl || !confirmHintEl) { return; }
+    var confirmVal = confirmEl.value;
+    if (confirmVal === '') {
+      confirmEl.classList.remove('match', 'mismatch');
+      confirmHintEl.className = 'pw-hint';
+      confirmHintEl.textContent = 'Must match the password above exactly. A typo here is the most common way a protected file becomes impossible to open.';
+      return;
+    }
+    var match = confirmVal === pwEl.value;
+    confirmEl.classList.toggle('match', match);
+    confirmEl.classList.toggle('mismatch', !match);
+    confirmHintEl.className = match ? 'pw-hint match-ok' : 'pw-hint mismatch-msg';
+    confirmHintEl.textContent = match ? 'Passwords match.' : 'Passwords do not match.';
+  }
+  confirmEl.addEventListener('input', updateConfirmMatch);
+  pwEl.addEventListener('input', updateConfirmMatch);
+  updateConfirmMatch();
+
   // Random strong-password generator (Part B). 20 characters drawn with
   // crypto.getRandomValues from a mixed pool (upper/lower/digits/symbols),
   // guaranteeing at least one of each class, for roughly 120 bits and an
@@ -1517,6 +1676,7 @@
     pwEl.value = g;
     document.getElementById('password2').value = g;
     updatePwStrength();
+    updateConfirmMatch();
     if (copyPwBtn) { copyPwBtn.textContent = 'Password generated'; setTimeout(function () { copyPwBtn.textContent = 'Copy password'; }, 2000); }
   });
   if (copyPwBtn) {
@@ -1917,9 +2077,16 @@
     btn.textContent = 'Building...';
     startProgress();
 
-    var logoPromise = o.showLogo
-      ? imageToDataUri(logoFile).then(function (uri) { return uri || DEFAULT_LOGO; })
-      : Promise.resolve(null);
+    var logoPromise;
+    if (!o.showLogo) {
+      logoPromise = Promise.resolve(null);
+    } else if (logoFile) {
+      logoPromise = imageToDataUri(logoFile);
+    } else if (/^https?:/i.test(DEFAULT_LOGO)) {
+      logoPromise = remoteToDataUri(DEFAULT_LOGO, warnings);
+    } else {
+      logoPromise = Promise.resolve(DEFAULT_LOGO);
+    }
     var lockPromise = o.showLock
       ? imageToDataUri(lockFile).then(function (uri) { return uri || DEFAULT_LOCK; })
       : Promise.resolve(null);
@@ -1930,7 +2097,12 @@
       : Promise.resolve('');
 
     Promise.all([logoPromise, lockPromise, cssPromise]).then(function (res) {
-      o.logo = res[0];
+      o.logo = res[0] || svgUri(
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'" +
+        " stroke='#94a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
+        "<rect x='3' y='11' width='18' height='11' rx='2' ry='2'/>" +
+        "<path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>"
+      );
       o.lock = res[1];
       o.customCss = res[2];
       setWarnings(warnings);

@@ -35,14 +35,16 @@ jobs:
       # source directory is almost its deployable output. The exceptions are
       # injected just-in-time here from repository variables so the owner can
       # change them without editing and committing source: the fixed "Learn
-      # more" origin (LEARN_MORE_URL, required) and the optional top-left logo
-      # (LOGO_URL, applied only when set). We stage a copy (builder-dist,
+      # more" origin (LEARN_MORE_URL, required), the optional top-left logo
+      # (LOGO_URL, applied only when set), and the optional builder tab title
+      # (BUILDER_TITLE, applied only when set). We stage a copy (builder-dist,
       # gitignored) rather than mutating the tracked file, then deploy the
       # staged copy.
       - name: Stage builder and inject Learn More URL and optional logo
         env:
           LEARN_MORE_URL: ${{ vars.LEARN_MORE_URL }}
           LOGO_URL: ${{ vars.LOGO_URL }}
+          BUILDER_TITLE: ${{ vars.BUILDER_TITLE }}
         shell: bash
         run: |
           set -euo pipefail
@@ -91,6 +93,29 @@ jobs:
             " builder-dist/index.html
           else
             echo "LOGO_URL not set; keeping the default grey padlock mark."
+          fi
+
+          # Optional builder tab title: inject BUILDER_TITLE only when the
+          # repository variable is set. When unset, keep the committed default
+          # title. Cosmetic only; never aborts the deploy.
+          if [[ -n "${BUILDER_TITLE:-}" ]]; then
+            node -e "
+              var fs=require('fs');
+              var file=process.argv[1];
+              var url=process.env.BUILDER_TITLE;
+              var s=fs.readFileSync(file,'utf8');
+              var key='BUILDER_TITLE = ';
+              var a=s.indexOf(key);
+              var q=String.fromCharCode(39);
+              var b=s.indexOf(q,a)+1;
+              var c=s.indexOf(q,b);
+              if(a<0||b<=0||c<0){ console.error('BUILDER_TITLE variable not found in '+file); process.exit(1); }
+              if(s.indexOf(url)!==-1){ console.log('BUILDER_TITLE already '+url+' in staged copy'); }
+              fs.writeFileSync(file,s.slice(0,b)+url+s.slice(c));
+              console.log('Staged builder with BUILDER_TITLE -> '+url);
+            " builder-dist/index.html
+          else
+            echo "BUILDER_TITLE not set; keeping the committed page title."
           fi
 
       - name: Deploy to Cloudflare Pages

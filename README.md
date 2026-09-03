@@ -85,18 +85,35 @@ never breaks previously generated files. Files carry a format version
   distinguishes a corrupted file from a wrong password, and signs the IV
   together with the ciphertext.
 
-The "Learn more" button is included in every output file and cannot be turned
-off. Its destination is fixed in the builder (see `LEARN_MORE_URL` in
-`builder/index.html`) and injected at deploy time from the GitHub Actions
-repository **variable** named `LEARN_MORE_URL`; it can never be overridden by
-any user input or upload - this is the single origin a recipient can check to
-confirm a file really came from this project. To change that origin, edit the
-`LEARN_MORE_URL` variable; no source change or commit is required.
+Every generated file carries two separate destinations:
+
+- The "Learn more" button is included in every output file and cannot be turned
+  off. Its destination is fixed in the builder (see `LEARN_MORE_URL` in
+  `builder/index.html`) and injected at deploy time from the GitHub Actions
+  repository **variable** named `LEARN_MORE_URL`; it can never be overridden by
+  any user input or upload - this is the single origin a recipient can check to
+  confirm a file really came from this project, and a fork can point it at its
+  own project page. To change that destination, edit the `LEARN_MORE_URL`
+  variable; no source change or commit is required.
+- A visible "Built by the nonce-in-a-file builder" line at the bottom of every
+  output. When the builder page is served over http(s) (for example from
+  Cloudflare Pages), this line links to that deployment's origin, so a
+  recipient can see which infrastructure produced the file. When the builder is
+  opened from local disk (file://), the same line renders as plain text,
+  noting the file was built by a local copy. This provenance is auto-detected
+  at build time (`location.origin`) and is separate from the Learn more link.
 
 The top-left banner mark defaults to a grey padlock. If you keep a logo on your
 own site or CDN, set the optional `LOGO_URL` GitHub Actions **variable** to its
 URL and every generated file will use it instead of the padlock - no image is
-committed to the repo. Leave `LOGO_URL` unset (or empty) to keep the padlock.
+committed to the repo. Generated files are fully offline and allow only embedded
+images, so the builder downloads the logo once at build time and embeds it into
+each file (an SVG is embedded as inline text, any other image as base64); the
+built file never references the remote URL. The logo is also used as the
+generated page's favicon (as an embedded data URI), so no separate icon file
+travels with the output. The logo server must permit a cross-origin fetch (an
+`Access-Control-Allow-Origin` header); if it does not, the build warns and falls
+back to the padlock. Leave `LOGO_URL` unset (or empty) to keep the padlock.
 
 ## Usage
 
@@ -114,10 +131,12 @@ committed to the repo. Leave `LOGO_URL` unset (or empty) to keep the padlock.
    the "Key derivation" selector on the recipients card to PBKDF2 mode. Saved
    public keys from the optional local address book can be added as recipients
    without pasting them again.
-4. Adjust branding as needed. Every element (logo, banner, heading,
-   description, lock icon, legal/privacy buttons, custom CSS) has an
-   independent on/off toggle applied at generation time. The Learn more button
-   is always included and cannot be turned off.
+4. Adjust branding as needed. The optional cards (Recipients, Signing,
+   Branding, Links, Custom CSS) start collapsed; click a card header to expand
+   it. Every element (logo, banner, heading, description, lock icon,
+   legal/privacy buttons, custom CSS) has an independent on/off toggle applied
+   at generation time. The Learn more button is always included and cannot be
+   turned off.
 5. Click "Build protected file". The page downloads a `.html` file that,
    when the correct password is entered, downloads your original file - or, for
    a multi-file bundle, shows a file list with per-file download buttons and a
@@ -166,7 +185,11 @@ placeholder and must never ship.
    - Optional: add another variable named `LOGO_URL` (a URL) to replace the
      default grey padlock banner mark with your hosted logo. It is applied
      only when set; the deploy never fails over it, and no logo file is
-     committed to the repo.
+     committed to the repo. The logo also becomes the generated page's
+     favicon.
+   - Optional: add another variable named `BUILDER_TITLE` (text) to change
+     the builder page's browser-tab title. Applied only when set; the deploy
+     never fails over it, and the committed default title is used otherwise.
 
 2. Create a Cloudflare API token (a secret, unlike the variable above) with the
    least privilege needed:
