@@ -107,14 +107,15 @@ Every generated file carries two separate destinations:
 The top-left banner mark defaults to a grey padlock. If you keep a logo on your
 own site or CDN, set the optional `LOGO_URL` GitHub Actions **variable** to its
 URL and every generated file will use it instead of the padlock - no image is
-committed to the repo. Generated files are fully offline and allow only embedded
-images, so the builder downloads the logo once at build time and embeds it into
-each file (an SVG is embedded as inline text, any other image as base64); the
-built file never references the remote URL. The logo is also used as the
+committed to the repo. The deploy workflow downloads the logo in the runner and
+injects it as a fully self-contained data URI, so the builder just embeds it
+into each file (an SVG is embedded as inline text, any other image as base64);
+the built file never references the remote URL. The logo is also used as the
 generated page's favicon (as an embedded data URI), so no separate icon file
-travels with the output. The logo server must permit a cross-origin fetch (an
-`Access-Control-Allow-Origin` header); if it does not, the build warns and falls
-back to the padlock. Leave `LOGO_URL` unset (or empty) to keep the padlock.
+travels with the output. Because the logo is fetched server-side at deploy time,
+the host does not need to allow cross-origin fetches - any publicly reachable
+logo URL works; if the download fails during deploy, the build keeps the
+padlock. Leave `LOGO_URL` unset (or empty) to keep the padlock.
 
 ## Usage
 

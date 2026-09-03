@@ -104,22 +104,42 @@ jobs:
           # variable is set. When unset, leave the placeholder empty so the
           # committed grey padlock stays the default mark in every generated
           # file. Unlike LEARN_MORE_URL this never aborts the deploy.
+          #
+          # The logo is downloaded here in the runner (a plain server-to-server
+          # fetch has no CORS restriction) and injected into LOGO_URL as a fully
+          # self-contained data URI. The builder then embeds that data URI into
+          # every generated file directly. This keeps generated files offline
+          # and removes the per-build browser-side cross-origin fetch, which was
+          # blocked unless the logo host sent an Access-Control-Allow-Origin
+          # header (the padlock fallback appeared on hosts like that). If the
+          # download fails at deploy time, we keep the padlock and warn.
           if [[ -n "${LOGO_URL:-}" ]]; then
-            node -e "
-              var fs=require('fs');
-              var file=process.argv[1];
-              var url=process.env.LOGO_URL;
-              var s=fs.readFileSync(file,'utf8');
-              var key='LOGO_URL = ';
-              var a=s.indexOf(key);
-              var q=String.fromCharCode(39);
-              var b=s.indexOf(q,a)+1;
-              var c=s.indexOf(q,b);
-              if(a<0||b<=0||c<0){ console.error('LOGO_URL variable not found in '+file); process.exit(1); }
-              if(s.indexOf(url)!==-1){ console.log('LOGO_URL already '+url+' in staged copy'); }
-              fs.writeFileSync(file,s.slice(0,b)+url+s.slice(c));
-              console.log('Staged builder with LOGO_URL -> '+url);
-            " builder-dist/index.html
+            LOGO_FILE="$(mktemp)"
+            if curl -sSL --fail "$LOGO_URL" -o "$LOGO_FILE"; then
+              LOGO_MIME="$(curl -sSLI -o /dev/null -w '%{content_type}' "$LOGO_URL" | sed 's/;.*//' | tr -d '[:space:]')"
+              [[ -n "$LOGO_MIME" ]] || LOGO_MIME="image/png"
+              export LOGO_FILE LOGO_MIME
+              node -e "
+                var fs=require('fs');
+                var file=process.argv[1];
+                var mime=process.env.LOGO_MIME;
+                var bytes=fs.readFileSync(process.env.LOGO_FILE);
+                var uri='data:'+mime+';base64,'+bytes.toString('base64');
+                var s=fs.readFileSync(file,'utf8');
+                var key='LOGO_URL = ';
+                var a=s.indexOf(key);
+                var q=String.fromCharCode(39);
+                var b=s.indexOf(q,a)+1;
+                var c=s.indexOf(q,b);
+                if(a<0||b<=0||c<0){ console.error('LOGO_URL variable not found in '+file); process.exit(1); }
+                fs.writeFileSync(file,s.slice(0,b)+uri+s.slice(c));
+                console.log('Staged LOGO_URL as embedded data URI ('+mime+', '+bytes.length+' bytes) from '+process.env.LOGO_URL);
+              " builder-dist/index.html
+              rm -f "$LOGO_FILE"
+            else
+              rm -f "$LOGO_FILE"
+              echo "::warning::LOGO_URL set but could not be downloaded from ${LOGO_URL}; keeping the default grey padlock mark."
+            fi
           else
             echo "LOGO_URL not set; keeping the default grey padlock mark."
           fi

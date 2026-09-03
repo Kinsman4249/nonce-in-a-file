@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The top-left `LOGO_URL` logo no longer silently falls back to the grey
+- padlock in generated files when the logo host does not send an
+  `Access-Control-Allow-Origin` header. The deploy workflow now downloads the
+  logo in the runner and injects it into `LOGO_URL` as a fully self-contained
+  data URI, so the builder embeds it directly and no browser-side cross-origin
+  fetch is needed; any publicly reachable logo URL (for example an Odoo
+  `/web/image` endpoint) now works. If the download fails during deploy, the
+  build keeps the padlock and emits a warning.
+
 ### Planned (not yet built)
 
 - Email integrations: an Outlook (Microsoft 365) Office.js add-in ("Protect attachments" task-pane that runs the builder logic client-side, swaps the attachment for the self-decrypting `.html`, and stamps an internet header such as `X-NonceInAFile-V`, wired to `OnMessageSend` auto-protect and `OnMessageDecrypt` for add-in-equipped recipients), a Gmail path (Chrome/Edge extension content-script button or a Google Workspace add-on via Apps Script), and local auto-protect heuristics that offer to protect before send when an attachment filename looks sensitive (confidential, salary, ssn, pan, draft). Deciding "attachment vs hosted link" requires the cloud-infra bucket.
