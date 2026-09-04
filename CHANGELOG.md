@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-09-04
+
+### Changed
+
+- Reworked sender authenticity in signed files: a verified signature is no longer shown as a green "Signed and verified" badge on its own. Signed files now open with an amber "integrity OK" notice and show the file's 8-byte key fingerprint; it turns green only after the recipient confirms that fingerprint with the sender out-of-band and ticks the confirmation box.
+- The builder now reports the recipient-visible 8-byte key fingerprint after building a signed file so the sender knows what to communicate out-of-band.
+- A signing private key that is not a usable ECDSA P-256 key is now rejected with a targeted error message instead of failing the build generically.
+- Updated documentation and the builder signing UI to explain that a verified signature proves integrity, not sender identity, and that the key fingerprint must be shared through a channel separate from the file.
+- Added tests covering the signed-file badge states (amber until confirmed, green after confirmation, revert to amber, red for tampered files, hidden for unsigned files).
+
 ## [1.6.0] - 2026-09-04
 
 ### Added
