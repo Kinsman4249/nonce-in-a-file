@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-09-04
+
 ### Changed
 
+- Signed files no longer display the 8-byte key fingerprint on the received
+  page. Instead, recipients must type back the fingerprint the sender gave them
+  out-of-band, and the badge turns green only when the entered value matches.
+  The fingerprint is never rendered in the file, so an intercepted page cannot
+  surface a fingerprint for someone to confirm against.
 - The Links card in the builder is now hidden entirely, because the legal,
   privacy, and learn-more links are fixed to the deployment and cannot be edited
   in the UI.
