@@ -29,6 +29,34 @@ Check items off as they land and add a line to `CHANGELOG.md` under
       Action that attaches the built file to a scheduled send) so evolution:
       prioritize documenting over building by default.
 
+## Chrome / Edge extension
+
+- [ ] Sketch the extension as a thin wrapper over the existing builder logic
+      (reuse `builder/index.html`'s encrypt path, Web Crypto + vendored
+      Argon2id), so users can build/decrypt a protected file without opening
+      the web page.
+- [ ] Decide the extension surface: toolbar popup with File picker and
+      password, and optionally a context-menu "Encrypt with nonce-in-a-file"
+      action on file downloads.
+- [ ] Decide sharing of a generated file: popup produces the same
+      self-contained `.html` download (keeps the model identical) OR uses the
+      hosted-decryptor + blob pattern to sidestep mail/AV filtering.
+- [ ] Local-only storage: persist recipients / the ECDH address book in
+      `chrome.storage.local`, never sync an address book to the cloud without
+      an explicit export (mirror the browser-only address-book promise).
+- [ ] Grant [`downloads`](https://developer.chrome.com/docs/extensions/reference/api/downloads)
+      permission so the extension can trigger the file download from a
+      background/service worker context.
+- [ ] Versioned for both Chromium (Chrome) and Edge via the WebExtensions
+      API so one codebase ships to both Web Stores.
+- [ ] Publish both the Chrome Web Store and Edge Add-ons listings, each
+      linking back to this project's bounty/hosting pattern.
+- [ ] Add end-to-end tests: page object drives the popup, encrypts a fixture,
+      decrypts the output, and asserts byte-for-byte round-trip (reuse the
+      existing `test/` engine-level assertions).
+- [ ] Host the extension source so it can be built from the repo without a
+      separate codebase.
+
 ## Single sign-on (SSO)
 
 - [ ] Decide whether SSO is authenticator-only (identity proof, no key
@@ -110,6 +138,44 @@ Check items off as they land and add a line to `CHANGELOG.md` under
 - [ ] Add share-link lineage/expiry: a generated hosted link should be able
       to carry expiry and a recipient allow-list so a leaked link does not
       stay valid forever. **[backend]**
+
+## Advertising the builder
+
+- [ ] Add a share/QR affordance to the builder page itself so a happy user can
+      promote it (the generated files already carry a QR encoder; reuse the
+      embedded MIT encoder to render the builder's own URL).
+- [ ] Write a one-page "why it's different" summary (client-side only, no
+      upload, self-decrypting, unrecoverable-by-design) as a canonical
+      blurb for releases, the extensions, and outreach.
+- [ ] Add a badge/banner SVG (reuse the default padlock mark) users can drop
+      on their sites to link back to the builder.
+- [ ] Keep a changelog-visible "Built by the nonce-in-a-file builder"
+      provenance line working as free promotion on every generated file, and
+      audit it after each output-format change.
+- [ ] Publish the extension and mail/sharing docs from one landing URL so
+      every advertising channel (Web Stores, QR, badge) points at one origin.
+
+## Advertising on the builder page
+
+- [ ] Decide which ad inventory to run on the builder page (e.g. Google AdSense,
+      Amazon Associates, or a direct/branded sponsor slot) and get project
+      sign-off on the trade-off against the current zero-ad, zero-tracker
+      privacy promise.
+- [ ] Add an ad unit slot in a deliberate, fixed position on the builder page
+      (not interstitials; the builder flow must stay fast and uninterruptible).
+- [ ] Keep ad scripts out of the generated output files: the self-contained,
+      offline decryptor must never carry an ad tag, tracker, or external
+      request. Ads live only on the builder page.
+- [ ] Isolate the ad network's script so it cannot re-type or defer the
+      builder's inline scripts (guard against the existing Rocket Loader
+      class of issue) and so the CSP allows it without widening the
+      generated-file CSP.
+- [ ] Update `PRIVACY.md`: state what ad network is used, what it may collect
+      on the builder page, and that generated files remain tracker-free.
+- [ ] Confirm `LEARN_MORE_URL` / fixed footer links are unaffected, and that
+      the ad unit does not sit over or replace the provenance line.
+- [ ] Re-run the builder regression tests with ads disabled (test) and enabled
+      (staging) to confirm build path integrity is unchanged.
 
 ## Observability / audit (enterprise)
 
