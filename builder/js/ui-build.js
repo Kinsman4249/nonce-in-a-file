@@ -158,6 +158,11 @@ document.getElementById('generate').addEventListener('click', function () {
     showDesc: document.getElementById('showDesc').checked,
     showLock: document.getElementById('showLock').checked,
     showShare: document.getElementById('showShare').checked,
+    // Button text colour override: empty means "auto", which keeps the
+    // built file's unlock button text matching the page's text colour.
+    textColor: document.getElementById('customOnText').checked
+      ? normColor(document.getElementById('btnTextColor').value, '#ffffff')
+      : '',
     legal: { label: LEGAL_LABEL, url: LEGAL_URL },
     privacy: { label: PRIVACY_LABEL, url: PRIVACY_URL }
   };
@@ -181,7 +186,7 @@ document.getElementById('generate').addEventListener('click', function () {
 
   // Surface contrast recommendations at build time too, so a palette that
   // becomes unreadable is flagged in the same warning list the builder shows.
-  var cNotes = contrastNotes(o.c1, o.c2, o.c3, o.bgColor);
+  var cNotes = contrastNotes(o.c1, o.c2, o.c3, o.bgColor, o.textColor);
   if (cNotes.length) {
     warnings = warnings.concat(cNotes.map(function (n) { return 'Contrast: ' + n; }));
   }

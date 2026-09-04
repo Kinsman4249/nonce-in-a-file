@@ -49,6 +49,13 @@
         padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;width:100%}
   .actions button:hover{filter:brightness(1.06)}
   .actions button:disabled{opacity:.5;cursor:not-allowed}
+  .filefield .file-btn{position:relative;display:flex;align-items:center;justify-content:center;width:100%;
+        background:linear-gradient(90deg,#fa396a,#b166b1,#5a9cfa);color:#fff;border:0;border-radius:10px;
+        padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;overflow:hidden}
+  .filefield .file-btn:hover{filter:brightness(1.06)}
+  .filefield .file-btn input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+  .filefield .file-btn .file-lbl{pointer-events:none}
+  .fileChosen{font-size:13px;color:#6b7280;margin-top:8px;word-break:break-all}
   .note{font-size:13px;color:#0f766e;margin-top:12px;display:none}
   .error{color:#b91c1c;font-size:13px;margin-top:12px;display:none}
   .progress{margin-top:14px;display:none}
@@ -88,9 +95,13 @@
   <section class="card" id="fileCard">
     <h2>File (or secret message)</h2>
     <p class="sub">The document(s) to encrypt: pick one or more files, or protect a written message. You can also drop files onto this card.</p>
-    <div class="field" id="fileField">
+    <div class="field filefield" id="fileField">
       <label for="file">File(s) to protect</label>
-      <input type="file" id="file" multiple required>
+      <label class="file-btn" for="file">
+        <span class="file-lbl" id="fileLbl">Choose files</span>
+        <input type="file" id="file" multiple required>
+      </label>
+      <p class="fileChosen" id="fileChosen"></p>
       <p class="hint" id="dropHint">Tip: drag and drop files here to select them. Selecting several files produces one bundled output with a file list on its unlock page.</p>
     </div>
     <label class="toggle"><input type="checkbox" id="useNote"> Protect a written message instead</label>
@@ -152,6 +163,13 @@
       <div class="field">
         <label for="lockFile">Lock icon image (optional; falls back to the default icon). Turn off for a text-only password prompt.</label>
         <input type="file" id="lockFile" accept="image/*">
+      </div>
+
+      <label class="toggle"><input type="checkbox" id="customOnText"> Custom button text colour (defaults to the page's text colour)</label>
+      <div class="field">
+        <label for="btnTextColor">Button text colour</label>
+        <input type="color" id="btnTextColor" value="#ffffff">
+        <p class="hint">The text colour of the unlock button in the built file. Unless you switch the toggle on, it matches the page's text colour so it stays readable against your background.</p>
       </div>
 
       <label class="toggle"><input type="checkbox" id="showShare" checked> Share / QR code</label>

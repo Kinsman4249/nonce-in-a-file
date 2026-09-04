@@ -106,6 +106,21 @@ if (copyPwBtn) {
 var fileCard = document.getElementById('fileCard');
 var fileInput = document.getElementById('file');
 var dropHint = document.getElementById('dropHint');
+var fileLbl = document.getElementById('fileLbl');
+var fileChosen = document.getElementById('fileChosen');
+// Refresh the styled "Choose files" button label and the readout with whatever
+// is currently selected in the native file input.
+function syncFileLabel() {
+  if (!fileInput || !fileInput.files || !fileInput.files.length) {
+    if (fileLbl) { fileLbl.textContent = 'Choose files'; }
+    if (fileChosen) { fileChosen.textContent = ''; }
+    return;
+  }
+  var names = Array.prototype.map.call(fileInput.files, function (f) { return f.name; });
+  if (fileLbl) { fileLbl.textContent = names.length === 1 ? names[0] : (names.length + ' files selected'); }
+  if (fileChosen) { fileChosen.textContent = names.join(', '); }
+}
+if (fileInput) { fileInput.addEventListener('change', syncFileLabel); }
 if (fileCard && fileInput) {
   ['dragenter', 'dragover'].forEach(function (evt) {
     fileCard.addEventListener(evt, function (e) { e.preventDefault(); fileCard.classList.add('dropping'); });
@@ -119,6 +134,7 @@ if (fileCard && fileInput) {
     var dt = e.dataTransfer;
     if (!dt || !dt.files || !dt.files.length) { return; }
     fileInput.files = dt.files;
+    syncFileLabel();
     if (dropHint) {
       dropHint.textContent = 'Selected ' + (dt.files[0].name || dt.files[0].type || 'file') + '.';
     }

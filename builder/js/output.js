@@ -424,6 +424,10 @@ function makeOutput(o, payload) {
   // (which references var(--...) throughout) stays fully themed per build.
   // See buildTheme()/makeLockSvg() above; contrastNotes() validates readability.
   var theme = buildTheme(o.c1, o.c2, o.c3, o.bgColor);
+  // The unlock button's label colour defaults to the page's text colour
+  // (readable against the chosen background); an explicit builder override
+  // replaces that for this build when one was picked.
+  var onAccent = o.textColor ? o.textColor : theme.text;
   var themeVars = [
     '--text:' + theme.text + ';',
     '--textSoft:' + theme.textSoft + ';',
@@ -431,7 +435,7 @@ function makeOutput(o, payload) {
     '--surface:' + theme.surface + ';',
     '--accent:' + theme.accent + ';',
     '--accentStrong:' + theme.accentStrong + ';',
-    '--onAccent:' + theme.onAccent + ';',
+    '--onAccent:' + onAccent + ';',
     '--accent2:' + theme.accent2 + ';',
     '--accent2Strong:' + theme.accent2Strong + ';',
     '--onAccent2:' + theme.onAccent2 + ';',

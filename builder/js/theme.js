@@ -113,11 +113,14 @@ function makeLockSvg(c1, c2, c3) {
 // Human-readable WCAG-style contrast recommendations for the chosen palette.
 // Returned as strings so they can be shown live in the Branding card and
 // appended to the build-time warning list.
-function contrastNotes(c1, c2, c3, bg) {
+function contrastNotes(c1, c2, c3, bg, onAccentOverride) {
   var notes = [];
   var t = buildTheme(c1, c2, c3, bg);
-  if (contrastRatio(t.accent, t.onAccent) < MIN_CONTRAST) {
-    notes.push('The gradient mid/button colour (' + (c2 || '').toLowerCase() + ') has low contrast with its label text. Choose a darker or lighter shade so the main button stays readable.');
+  // The unlock button uses the page's text colour unless the builder picked an
+  // explicit override, so check whichever actually ships as the label colour.
+  var btnText = onAccentOverride || t.text;
+  if (contrastRatio(t.accent, btnText) < MIN_CONTRAST) {
+    notes.push('The gradient mid/button colour (' + (c2 || '').toLowerCase() + ') has low contrast with its label text. Choose a darker or lighter shade (or a different button text colour) so the main button stays readable.');
   }
   if (contrastRatio(t.accent2, bg) < MIN_CONTRAST) {
     notes.push('The accent colour (' + (c3 || '').toLowerCase() + ') has low contrast against the page background, so buttons and links may be hard to spot. Try a darker or lighter shade.');

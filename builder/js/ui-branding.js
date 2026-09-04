@@ -12,6 +12,8 @@
   var prev = document.getElementById('bannerPreview');
   var mark = document.getElementById('bannerMark');
   var notes = document.getElementById('contrastNotes');
+  var customOnText = document.getElementById('customOnText');
+  var btnTextColor = document.getElementById('btnTextColor');
   if (!c1 || !c2 || !c3 || !showBanner || !prev) { return; }
 
   function update() {
@@ -26,7 +28,10 @@
     }
     // Live readability recommendations for the chosen palette.
     if (notes) {
-      var list = contrastNotes(v1, v2, v3, normColor(bgColor ? bgColor.value : '#ffffff', '#ffffff'));
+      var btnTextOverride = (customOnText && customOnText.checked && btnTextColor)
+        ? normColor(btnTextColor.value, '#ffffff')
+        : '';
+      var list = contrastNotes(v1, v2, v3, normColor(bgColor ? bgColor.value : '#ffffff', '#ffffff'), btnTextOverride);
       if (!list.length) {
         notes.style.display = 'none';
         notes.innerHTML = '';
@@ -42,6 +47,8 @@
     el.addEventListener('input', update);
     el.addEventListener('change', update);
   });
+  if (customOnText) { customOnText.addEventListener('change', update); }
+  if (btnTextColor) { btnTextColor.addEventListener('input', update); btnTextColor.addEventListener('change', update); }
   showBanner.addEventListener('change', update);
   update();
 })();
