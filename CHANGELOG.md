@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-09-04
+
+### Changed
+
+- The builder was refactored from one monolithic `builder/index.html` (2,575
+  lines) into a multi-file static app: the deploy-time config stays inline in
+  `builder/index.html`, the base64 crypto bundles moved to `builder/js/ar2-b64.js`
+  and `builder/js/qr-b64.js`, and the logic is now split into ordered classic
+  `<script>` modules under `builder/js/` (one per UI card plus shared core
+  modules). No build step, no dependencies, and the Cloudflare Pages deploy is
+  unchanged: `test/run.js` was updated for the new file homes and a new
+  `test/load-builder.js` asserts the modules load in order without throwing.
+
 ## [1.9.0] - 2026-09-04
 
 ### Changed
