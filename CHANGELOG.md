@@ -7,18 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-- Outlook \ Gmail \ Chrome Plugin
-- Message only mode displays in browser.
-- SSO, key escrow, online decryption via Entra, SAML, etc.
-- Ability to disable QR code.
-
-## [1.5.0] - 2026-09-03
+## [1.6.0] - 2026-09-04
 
 ### Added
 
+- A protected written message now decrypts and displays inline in the browser
+  inside a scrollable box with a Download button, instead of force-downloading
+  a text file.
+- The Branding card gains a "Share / QR code" toggle. When turned off, generated
+  files omit the "Share this file" button, the QR code, the runtime share logic,
+  and the embedded QR encoder entirely.
 - The builder now shows a live banner preview at the top of the page that
   reflects the Branding card's gradient colour inputs and its show toggle,
   rendering exactly the banner the protected file will embed.
+- The builder page now carries a favicon that stays in sync with the top-left
+  logo mark.
 
 ### Changed
 
