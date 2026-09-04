@@ -16,7 +16,8 @@
   h1{font-size:24px;font-weight:800;margin:0;color:#292d2f}
   .tagline{color:#6b7280;font-size:14px;margin:0 0 28px}
   .preview{position:relative;height:56px;border-radius:12px;margin-bottom:20px;border:1px solid #e5e7eb;overflow:hidden}
-  .preview .preview-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,.9);border-radius:6px;padding:4px 10px;font-size:12px;color:#6b7280;font-weight:600;pointer-events:none;letter-spacing:.3px}
+  .preview .preview-hint{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.9);border-radius:6px;padding:2px 8px;font-size:11px;color:#6b7280;font-weight:600;pointer-events:none;letter-spacing:.3px}
+  .preview .preview-mark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);height:34px;width:auto}
   .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
   .card h2{font-size:16px;font-weight:700;margin:0 0 4px}
   .card .sub{font-size:13px;color:#6b7280;margin:0 0 18px}
@@ -82,7 +83,7 @@
   </header>
   <p class="tagline">Pick a file and a password; this page produces a single self-contained HTML file that decrypts and downloads it. Everything runs in your browser - nothing you enter is ever uploaded.</p>
 
-  <div class="preview" id="bannerPreview" title="Live preview of your banner / gradient"><span class="preview-hint">Banner preview</span></div>
+  <div class="preview" id="bannerPreview" title="Live preview of your banner / gradient and coloured logo"><img class="preview-mark" id="bannerMark" alt="Coloured logo preview"><span class="preview-hint">Banner preview</span></div>
 
   <section class="card" id="fileCard">
     <h2>File (or secret message)</h2>
@@ -155,6 +156,8 @@
 
       <label class="toggle"><input type="checkbox" id="showShare" checked> Share / QR code</label>
       <p class="hint">When generated, every file shows a "Share this file" button and a QR code of the page URL (when served over http(s)). Turn this off to omit the button, QR, and the embedded QR encoder entirely from the built file.</p>
+
+      <div class="warnings" id="contrastNotes"></div>
     </div>
   </section>
   <section class="card collapsible collapsed">
@@ -383,17 +386,126 @@
       "<path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>"
     );
 
-  // Coloured lock shown as the center lock icon on the generated file.
-  var DEFAULT_LOCK = svgUri(
-    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>" +
-    "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
-    "<stop offset='0' stop-color='#FA396A'/>" +
-    "<stop offset='0.5' stop-color='#B166B1'/>" +
-    "<stop offset='1' stop-color='#5A9CFA'/>" +
-    "</linearGradient></defs>" +
-    "<path fill='url(#g)' d='M16 2l9 3.5v7c0 6-3.6 10.2-9 12-5.4-1.8-9-6-9-12v-7z'/>" +
-    "<path fill='#fff' d='M16 10a3.2 3.2 0 0 1 2.6 5.1l1.2 3.4h-7.6l1.2-3.4A3.2 3.2 0 0 1 16 10z'/></svg>"
-  );
+  // -------------------------------------------------------------------------
+  // Theme helpers. The generated page's accent, link, and text colours are all
+  // derived from the builder's banner gradient (c1..c3) plus the page
+  // background, so the output visibly matches the chosen brand. Every derived
+  // colour is checked against a minimum WCAG contrast ratio so nothing becomes
+  // unreadable; contrastNotes() turns any shortfall into a readable on-screen
+  // recommendation.
+  // -------------------------------------------------------------------------
+  function hexToRgb(hex) {
+    hex = String(hex || '').replace(/^#/, '');
+    if (hex.length === 3) { hex = hex.replace(/./g, function (c) { return c + c; }); }
+    if (!/^[0-9a-fA-F]{6}$/.test(hex)) { return { r: 0, g: 0, b: 0 }; }
+    var n = parseInt(hex, 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+  function rgbToHex(rgb) {
+    function p(v) {
+      v = Math.max(0, Math.min(255, Math.round(v)));
+      return ('0' + v.toString(16)).slice(-2);
+    }
+    return '#' + p(rgb.r) + p(rgb.g) + p(rgb.b);
+  }
+  function luminance(rgb) {
+    function f(c) { c = c / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    return 0.2126 * f(rgb.r) + 0.7152 * f(rgb.g) + 0.0722 * f(rgb.b);
+  }
+  function contrastRatio(a, b) {
+    var la = luminance(hexToRgb(a));
+    var lb = luminance(hexToRgb(b));
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+  // Strongest readable ink on a given background: near-black on light, near-white
+  // on dark, whichever has the higher contrast. Keeps headings/body readable no
+  // matter how light or dark the owner's page background is.
+  var INK_DARK = '#1f2937';
+  var INK_LIGHT = '#f3f4f6';
+  function readableOn(bg) {
+    return contrastRatio(INK_DARK, bg) >= contrastRatio(INK_LIGHT, bg) ? INK_DARK : INK_LIGHT;
+  }
+  function blend(a, b, t) {
+    var p = hexToRgb(a);
+    var q = hexToRgb(b);
+    return rgbToHex({ r: p.r + (q.r - p.r) * t, g: p.g + (q.g - p.g) * t, b: p.b + (q.b - p.b) * t });
+  }
+  var MIN_CONTRAST = 4.5;
+  // A softer secondary text colour that still clears MIN_CONTRAST against the
+  // background: blend text toward the background only while it stays readable.
+  function mutedOn(bg) {
+    var text = readableOn(bg);
+    var t = 0.25;
+    var out = blend(text, bg, t);
+    while (contrastRatio(out, bg) < MIN_CONTRAST && t < 0.9) {
+      t += 0.15;
+      out = blend(text, bg, t);
+    }
+    return out;
+  }
+  function borderOn(bg) { return blend(bg, readableOn(bg), 0.25); }
+  function lightSurfaceOn(bg) { return blend(bg, readableOn(bg), 0.045); }
+  function darken(hex, amt) { return blend(hex, '#000000', amt); }
+  function lighten(hex, amt) { return blend(hex, '#ffffff', amt); }
+  // Hover state for a solid button: darken a light button, lighten a dark one.
+  function aimOn(hex) {
+    return contrastRatio(INK_LIGHT, hex) >= contrastRatio(INK_DARK, hex) ? darken(hex, 0.1) : lighten(hex, 0.1);
+  }
+  // Full theme derived from the banner gradient + the page background. The three
+  // gradient stops drive the accents; everything else is chosen to stay readable.
+  function buildTheme(c1, c2, c3, bg) {
+    var onBanner = contrastRatio(INK_DARK, c2) >= contrastRatio(INK_LIGHT, c2) ? INK_DARK : INK_LIGHT;
+    return {
+      text: readableOn(bg),
+      textSoft: mutedOn(bg),
+      border: borderOn(bg),
+      surface: lightSurfaceOn(bg),
+      accent: c2,
+      accentStrong: aimOn(c2),
+      onAccent: readableOn(c2),
+      accent2: c3,
+      accent2Strong: aimOn(c3),
+      onAccent2: readableOn(c3),
+      link: c3,
+      onBanner: onBanner,
+      focusRing: blend(c2, bg, 0.55)
+    };
+  }
+  // The coloured shield-and-keyhole mark shown centred on the generated page.
+  // Its gradient is always the current banner colours, so the logo tracks the
+  // owner's palette instead of a fixed theme. Returns a data:image URI.
+  function makeLockSvg(c1, c2, c3) {
+    return svgUri(
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>" +
+      "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
+      "<stop offset='0' stop-color='" + normColor(c1, '#fa396a') + "'/>" +
+      "<stop offset='0.5' stop-color='" + normColor(c2, '#b166b1') + "'/>" +
+      "<stop offset='1' stop-color='" + normColor(c3, '#5a9cfa') + "'/>" +
+      "</linearGradient></defs>" +
+      "<path fill='url(#g)' d='M16 2l9 3.5v7c0 6-3.6 10.2-9 12-5.4-1.8-9-6-9-12v-7z'/>" +
+      "<path fill='#ffffff' d='M16 10a3.2 3.2 0 0 1 2.6 5.1l1.2 3.4h-7.6l1.2-3.4A3.2 3.2 0 0 1 16 10z'/></svg>"
+    );
+  }
+  // Human-readable WCAG-style contrast recommendations for the chosen palette.
+  // Returned as strings so they can be shown live in the Branding card and
+  // appended to the build-time warning list.
+  function contrastNotes(c1, c2, c3, bg) {
+    var notes = [];
+    var t = buildTheme(c1, c2, c3, bg);
+    if (contrastRatio(t.accent, t.onAccent) < MIN_CONTRAST) {
+      notes.push('The gradient mid/button colour (' + (c2 || '').toLowerCase() + ') has low contrast with its label text. Choose a darker or lighter shade so the main button stays readable.');
+    }
+    if (contrastRatio(t.accent2, bg) < MIN_CONTRAST) {
+      notes.push('The accent colour (' + (c3 || '').toLowerCase() + ') has low contrast against the page background, so buttons and links may be hard to spot. Try a darker or lighter shade.');
+    }
+    if (contrastRatio(t.onBanner, c2) < 3) {
+      notes.push('Banner icons may be hard to see against the middle stop of your gradient. Consider making the gradient lighter or darker for better contrast.');
+    }
+    if (contrastRatio(t.text, bg) < MIN_CONTRAST) {
+      notes.push('The page text has low contrast against the background. Lighten the page background or choose a darker gradient so headings stay legible.');
+    }
+    return notes;
+  }
 
   // -------------------------------------------------------------------------
   // Small helpers
@@ -1188,34 +1300,35 @@
     '*{box-sizing:border-box}',
     'html,body{margin:0;padding:0}',
     "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;",
-    '     color:#292d2f;min-height:100vh}',
+    '     color:var(--text);min-height:100vh}',
     '.banner{display:flex;align-items:center;justify-content:space-between;padding:16px 22px}',
     '.banner img{height:36px;width:auto}',
     // Hidden for now; retained for a future menu. To re-enable, set
     // display:block here (and remove the override below).
     '.burger{display:none}',
-    '.burger span{display:block;width:22px;height:3px;background:rgba(255,255,255,.92);border-radius:2px;margin:3px 0}',
+    '.burger span{display:block;width:22px;height:3px;background:var(--onBanner);border-radius:2px;margin:3px 0}',
     '.logo-only{padding:20px 22px 4px}',
     '.logo-only img{height:36px;width:auto}',
     '.content{max-width:560px;margin:0 auto;padding:44px 24px 72px}',
-    'h1{font-size:32px;font-weight:800;margin:0 0 12px;color:#292d2f}',
-    '.desc{font-size:16px;color:#6b7280;margin:0 0 28px;line-height:1.5}',
-    '.lock-icon{width:64px;height:64px;margin:8px 0 20px}',
-    '.lock-text{color:#6b7280;font-size:15px;margin:0 0 16px}',
-    'label{display:block;font-size:14px;font-weight:600;margin-bottom:8px;color:#374151}',
-    'input[type=password]{width:100%;padding:12px 14px;font-size:16px;border:1px solid #d1d5db;border-radius:8px}',
-    'input[type=password]:focus{outline:none;border-color:#b166b1;box-shadow:0 0 0 3px rgba(177,102,177,.18)}',
-    'button[type=submit]{width:100%;margin-top:12px;padding:13px;font-size:16px;font-weight:700;color:#fff;',
-    '  background:#b166b1;border:0;border-radius:8px;cursor:pointer}',
-    'button[type=submit]:hover{background:#9d4f9d}',
+    'h1{font-size:32px;font-weight:800;margin:0 0 12px;color:var(--text)}',
+    '.desc{font-size:16px;color:var(--textSoft);margin:0 0 28px;line-height:1.5}',
+    // The coloured logo: centred on the page and a little larger than before.
+    '.lock-icon{width:88px;height:88px;display:block;margin:8px auto 26px}',
+    '.lock-text{color:var(--textSoft);font-size:15px;margin:0 0 16px}',
+    'label{display:block;font-size:14px;font-weight:600;margin-bottom:8px;color:var(--text)}',
+    'input[type=password]{width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--border);border-radius:8px}',
+    'input[type=password]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focusRing)}',
+    'button[type=submit]{width:100%;margin-top:12px;padding:13px;font-size:16px;font-weight:700;color:var(--onAccent);',
+    '  background:var(--accent);border:0;border-radius:8px;cursor:pointer}',
+    'button[type=submit]:hover{background:var(--accentStrong)}',
     'button[type=submit]:disabled{opacity:.6;cursor:progress}',
     '.error{color:#b91c1c;font-size:14px;margin:12px 0 0}',
     '.note{color:#0f766e;font-size:14px;margin:12px 0 0}',
     '.foot{display:flex;gap:18px;margin-top:40px;flex-wrap:wrap}',
-    '.foot a{color:#5a9cfa;text-decoration:none;font-size:14px;font-weight:600}',
+    '.foot a{color:var(--link);text-decoration:none;font-size:14px;font-weight:600}',
     '.foot a:hover{text-decoration:underline}',
-    '.builtby{font-size:12px;color:#9ca3af;margin-top:28px}',
-    '.builtby a{color:#5a9cfa;text-decoration:none;font-weight:600}',
+    '.builtby{font-size:12px;color:var(--textSoft);margin-top:28px}',
+    '.builtby a{color:var(--link);text-decoration:none;font-weight:600}',
     '.builtby a:hover{text-decoration:underline}',
     '.sign{font-size:14px;margin:0 0 20px;padding:10px 12px;border-radius:8px}',
     '.signmsg{margin:0 0 4px}',
@@ -1225,31 +1338,31 @@
     '.sign.ok .confirm{margin-top:8px}',
     '.sign.bad{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca}',
     '.sign .confirm{display:block;font-size:13px;color:inherit;cursor:pointer}',
-    '.keysub{margin-top:24px;padding-top:18px;border-top:1px solid #e5e7eb}',
-    'textarea{width:100%;padding:12px 14px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
-    'textarea:focus{outline:none;border-color:#b166b1}',
-    'button.key{width:100%;margin-top:10px;padding:11px;font-size:15px;font-weight:700;color:#fff;background:#5a9cfa;border:0;border-radius:8px;cursor:pointer}',
+    '.keysub{margin-top:24px;padding-top:18px;border-top:1px solid var(--border)}',
+    'textarea{width:100%;padding:12px 14px;font-size:14px;border:1px solid var(--border);border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+    'textarea:focus{outline:none;border-color:var(--accent)}',
+    'button.key{width:100%;margin-top:10px;padding:11px;font-size:15px;font-weight:700;color:var(--onAccent2);background:var(--accent2);border:0;border-radius:8px;cursor:pointer}',
     'button.key:hover{filter:brightness(1.05)}',
     '#files{margin-top:8px}',
     '#files ul{list-style:none;margin:0;padding:0}',
-    '#files li{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e5e7eb;font-size:15px}',
+    '#files li{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:15px}',
     '#files li span{word-break:break-all}',
-    '#files li button, #files>button{margin:0;padding:9px 16px;border:0;border-radius:8px;background:#5a9cfa;color:#fff;font-weight:700;cursor:pointer;font-size:14px}',
+    '#files li button, #files>button{margin:0;padding:9px 16px;border:0;border-radius:8px;background:var(--accent2);color:var(--onAccent2);font-weight:700;cursor:pointer;font-size:14px}',
     '#files>button{margin-top:14px;width:100%}',
     '.share{margin-top:28px;text-align:center}',
-    'button.sharelink{background:none;border:0;padding:0;margin:0;color:#5a9cfa;font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline}',
+    'button.sharelink{background:none;border:0;padding:0;margin:0;color:var(--link);font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline}',
     'button.sharelink:hover{text-decoration:none}',
-    '.sharepan{margin-top:14px;padding:16px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa;display:inline-block;max-width:100%}',
-    '.sharepan .sharelbl{font-size:13px;color:#6b7280;margin:0 0 12px}',
+    '.sharepan{margin-top:14px;padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);display:inline-block;max-width:100%}',
+    '.sharepan .sharelbl{font-size:13px;color:var(--textSoft);margin:0 0 12px}',
     '.sharepan[hidden]{display:none}',
     '.sharepan .squares svg{display:block;margin:0 auto;max-width:100%;height:auto}',
     // Inline message display for a message-only file: the unlocked plain text is
     // shown read-only inside a scrollable box with a Download button below, so a
     // short secret/message is readable on the page instead of forcing a download.
     '#msg{margin-top:16px}',
-    '#msg.prlbl{font-size:14px;font-weight:600;color:#374151;margin:0 0 8px}',
-    '#msg pre{white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow:auto;background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;padding:14px;font-size:14px;line-height:1.5;margin:0 0 12px}',
-    '#msg button{margin:0;padding:9px 16px;border:0;border-radius:8px;background:#5a9cfa;color:#fff;font-weight:700;cursor:pointer;font-size:14px}'
+    '#msg.prlbl{font-size:14px;font-weight:600;color:var(--text);margin:0 0 8px}',
+    '#msg pre{white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:14px;line-height:1.5;margin:0 0 12px}',
+    '#msg button{margin:0;padding:9px 16px;border:0;border-radius:8px;background:var(--accent2);color:var(--onAccent2);font-weight:700;cursor:pointer;font-size:14px}'
   ].join('\n');
 
   // -------------------------------------------------------------------------
@@ -1594,6 +1707,26 @@
   // -------------------------------------------------------------------------
   function makeOutput(o, payload) {
     var gradient = 'linear-gradient(90deg,' + o.c1 + ',' + o.c2 + ',' + o.c3 + ')';
+    // Derive the page's accent/link/border/text colours from the banner gradient
+    // and the page background, then expose them as CSS variables so OUTPUT_CSS
+    // (which references var(--...) throughout) stays fully themed per build.
+    // See buildTheme()/makeLockSvg() above; contrastNotes() validates readability.
+    var theme = buildTheme(o.c1, o.c2, o.c3, o.bgColor);
+    var themeVars = [
+      '--text:' + theme.text + ';',
+      '--textSoft:' + theme.textSoft + ';',
+      '--border:' + theme.border + ';',
+      '--surface:' + theme.surface + ';',
+      '--accent:' + theme.accent + ';',
+      '--accentStrong:' + theme.accentStrong + ';',
+      '--onAccent:' + theme.onAccent + ';',
+      '--accent2:' + theme.accent2 + ';',
+      '--accent2Strong:' + theme.accent2Strong + ';',
+      '--onAccent2:' + theme.onAccent2 + ';',
+      '--link:' + theme.link + ';',
+      '--onBanner:' + theme.onBanner + ';',
+      '--focusRing:' + theme.focusRing + ';'
+    ].join('');
     // The top-left logo doubles as the browser-tab favicon: it is already a
     // data:image URI (allowed by the output CSP's img-src data:), so no
     // separate icon file is needed and the page stays fully self-contained.
@@ -1708,7 +1841,7 @@
       // The title can no longer use the real filename, which is now encrypted
       // with the file; it falls back to the branding heading instead.
       '<title>' + esc(o.heading || 'Protected file') + '</title>',
-      '<style>',
+      '<style>:root{' + themeVars + '}',
       OUTPUT_CSS,
       '</style>',
       o.customCss ? '<style>' + o.customCss + '</style>' : '',
@@ -1802,20 +1935,38 @@
     var c1 = document.getElementById('c1');
     var c2 = document.getElementById('c2');
     var c3 = document.getElementById('c3');
+    var bgColor = document.getElementById('bgColor');
     var showBanner = document.getElementById('showBanner');
     var prev = document.getElementById('bannerPreview');
+    var mark = document.getElementById('bannerMark');
+    var notes = document.getElementById('contrastNotes');
     if (!c1 || !c2 || !c3 || !showBanner || !prev) { return; }
 
     function update() {
       var on = showBanner.checked;
       prev.style.display = on ? '' : 'none';
-      if (!on) { return; }
-      prev.style.background =
-        'linear-gradient(90deg,' + normColor(c1.value, '#fa396a') + ',' +
-        normColor(c2.value, '#b166b1') + ',' + normColor(c3.value, '#5a9cfa') + ')';
+      var v1 = normColor(c1.value, '#fa396a');
+      var v2 = normColor(c2.value, '#b166b1');
+      var v3 = normColor(c3.value, '#5a9cfa');
+      if (on) {
+        prev.style.background = 'linear-gradient(90deg,' + v1 + ',' + v2 + ',' + v3 + ')';
+        if (mark) { mark.src = makeLockSvg(v1, v2, v3); }
+      }
+      // Live readability recommendations for the chosen palette.
+      if (notes) {
+        var list = contrastNotes(v1, v2, v3, normColor(bgColor ? bgColor.value : '#ffffff', '#ffffff'));
+        if (!list.length) {
+          notes.style.display = 'none';
+          notes.innerHTML = '';
+        } else {
+          notes.style.display = 'block';
+          notes.innerHTML = '<ul><li>' + list.join('</li><li>') + '</li></ul>';
+        }
+      }
     }
 
-    [c1, c2, c3].forEach(function (el) {
+    [c1, c2, c3, bgColor].forEach(function (el) {
+      if (!el) { return; }
       el.addEventListener('input', update);
       el.addEventListener('change', update);
     });
@@ -2307,6 +2458,13 @@
     var lockFile = document.getElementById('lockFile').files[0] || null;
     var showCustom = document.getElementById('showCustom').checked && !!cssFile;
 
+    // Surface contrast recommendations at build time too, so a palette that
+    // becomes unreadable is flagged in the same warning list the builder shows.
+    var cNotes = contrastNotes(o.c1, o.c2, o.c3, o.bgColor);
+    if (cNotes.length) {
+      warnings = warnings.concat(cNotes.map(function (n) { return 'Contrast: ' + n; }));
+    }
+
     btn.disabled = true;
     btn.textContent = 'Building...';
     startProgress();
@@ -2322,7 +2480,7 @@
       logoPromise = Promise.resolve(DEFAULT_LOGO);
     }
     var lockPromise = o.showLock
-      ? imageToDataUri(lockFile).then(function (uri) { return uri || DEFAULT_LOCK; })
+      ? imageToDataUri(lockFile).then(function (uri) { return uri || makeLockSvg(o.c1, o.c2, o.c3); })
       : Promise.resolve(null);
     var cssPromise = showCustom && cssFile
       ? readBytes(cssFile).then(function (bytes) {
