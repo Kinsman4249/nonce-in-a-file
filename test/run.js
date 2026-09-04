@@ -17,12 +17,13 @@
  *      builder/vendor/qrcode.js, so the copy shipped inside every generated
  *      file can never drift from the reviewed, arm's-length vendored file.
  *
- *   E) Signed-file badge: a generated file never shows the green "Signed and
- *      verified" badge on its own. It starts amber (integrity OK) with the
- *      8-byte key fingerprint and an out-of-band confirmation box, turns green
- *      only after the recipient ticks that box, reverts to amber when
- *      unchecked, shows red for a tampered file, and stays hidden for an
- *      unsigned file.
+*  E) Signed-file badge: a generated file never shows the green "Signed and
+ *      verified" badge on its own, and never reveals the key fingerprint (so it
+ *      cannot be lifted from the file to fake the out-of-band test). It starts
+ *      amber (integrity OK) with an out-of-band entry box, turns green only
+ *      after the recipient types back the correct 8-byte fingerprint, reverts
+ *      to amber on a wrong/blank entry, shows red for a tampered file, and
+ *      stays hidden for an unsigned file.
  *
  * Both libraries are permissive (MIT encoder, Apache-2.0 decoder) and live in
  * the repo (builder/vendor/, test/vendor/) with their licenses - no BUSL change.
@@ -195,27 +196,33 @@ function bootSigned(href, payload) {
 
     const payload = { v: 4, iv, ct, recipients: [], sign: { label, pub, sig: Buffer.from(sig).toString('base64') } };
 
+    // Expected 8-byte fingerprint the decrypted page computes from the public key.
+    const fp = Array.from(crypto.createHash('sha256').update(Buffer.from(pub, 'base64')).digest().slice(0, 8))
+      .map(b => ('0' + b.toString(16)).slice(-2)).join('');
+
     const els = bootSigned('https://example.com/doc.html', payload);
     await new Promise(r => setTimeout(r, 300));
     if (els['signed'].className === 'sign info') pass('starts amber (integrity OK), not green');
     else fail('starts amber (integrity OK), not green', els['signed'].className);
-    if (els['signConfirmWrap'].hidden === false) pass('out-of-band confirmation box is shown');
-    else fail('out-of-band confirmation box is shown');
-    if (/fingerprint/.test(els['signedMsg'].textContent) && /out-of-band/.test(els['signedMsg'].textContent)) {
-      pass('message surfaces the fingerprint and out-of-band task');
-    } else fail('message surfaces the fingerprint and out-of-band task', els['signedMsg'].textContent);
+    if (els['signConfirmWrap'].hidden === false) pass('out-of-band fingerprint entry box is shown');
+    else fail('out-of-band fingerprint entry box is shown');
+    if (/out-of-band/.test(els['signedMsg'].textContent) && els['signedMsg'].textContent.indexOf(fp) === -1) {
+      pass('amber message asks to enter the fingerprint but does not reveal it');
+    } else fail('amber message asks to enter the fingerprint but does not reveal it', els['signedMsg'].textContent);
 
-    els['signConfirm'].checked = true;
-    els['signConfirm']._handlers.change();
-    if (els['signed'].className === 'sign ok') pass('turns green after recipient confirms the fingerprint');
-    else fail('turns green after recipient confirms the fingerprint', els['signed'].className);
+    els['signConfirm'].value = fp;
+    els['signConfirm']._handlers.input();
+    if (els['signed'].className === 'sign ok') pass('turns green when the correct fingerprint is entered');
+    else fail('turns green when the correct fingerprint is entered', els['signed'].className);
     if (/Signed and verified/.test(els['signedMsg'].textContent)) pass('green message reports verified');
     else fail('green message reports verified', els['signedMsg'].textContent);
 
-    els['signConfirm'].checked = false;
-    els['signConfirm']._handlers.change();
-    if (els['signed'].className === 'sign info') pass('reverts to amber when unconfirmed');
-    else fail('reverts to amber when unconfirmed', els['signed'].className);
+    els['signConfirm'].value = '00000000';
+    els['signConfirm']._handlers.input();
+    if (els['signed'].className === 'sign info') pass('stays amber when an incorrect fingerprint is entered');
+    else fail('stays amber when an incorrect fingerprint is entered', els['signed'].className);
+    if (els['signedMsg'].textContent.indexOf(fp) === -1) pass('incorrect entry never reveals the fingerprint');
+    else fail('incorrect entry never reveals the fingerprint', els['signedMsg'].textContent);
     delete global.document; delete global.location; delete global.atob; delete global.window;
 
     const badPayload = JSON.parse(JSON.stringify(payload));

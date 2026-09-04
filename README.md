@@ -63,10 +63,12 @@ never breaks previously generated files. Files carry a format version
   that verifies does NOT by itself prove who sent it - anyone can re-sign
   with their own key. So the generated file does not show a green "Signed and
   verified" badge on its own: it shows an amber "integrity OK" notice until
-  the recipient confirms the file's 8-byte key fingerprint **out-of-band**
-  (e.g. chat, phone, a pre-shared key page) and ticks a confirmation box. The
-  sender must communicate that fingerprint through a channel separate from
-  the file. This is optional and independent of the always-on Learn-more link.
+  the recipient types back the file's 8-byte key fingerprint that the sender
+  gave them **out-of-band** (e.g. chat, phone, a pre-shared key page). The
+  fingerprint is never displayed inside the file itself, so nobody can lift it
+  from the page to fake the sender. The sender must communicate that
+  fingerprint through a channel separate from the file. This is optional and
+  independent of the always-on Learn-more link.
 - Encryption: AES-256-GCM (authenticated encryption, so tampering is detected)
   with a fresh random 12-byte nonce per file.
 - Compression: plaintext is gzip-compressed first using the browser's native
@@ -178,8 +180,10 @@ The signature only proves the file was not altered since signing. Because the
 signer's public key ships inside the same file, verifying it does **not** prove
 who sent it. A recipient only sees a green "Signed and verified" badge after
 they confirm that fingerprint **out-of-band** - through a channel separate from
-the file itself (a chat message, a phone call, a pre-shared key page) - and tick
-a confirmation box. Send the fingerprint by one of those channels; never rely on
+the file itself (a chat message, a phone call, a pre-shared key page). The
+received file never displays the fingerprint; it asks the recipient to type in
+the value the sender gave them, and only turns green when that entry matches.
+Send the fingerprint by one of those channels; never rely on
 the file to vouch for itself. If you do not share the fingerprint, recipients
 will see an amber "integrity OK - sender not yet confirmed" notice instead of a
 green badge, which is the safe default.
@@ -202,12 +206,13 @@ QR exposes whatever is in the address bar.
 
 When a signed file is opened, recipients see a signature notice beneath the
 lock. It is amber unless they confirm the sender: it reads "integrity OK" and
-shows the file's 8-byte key fingerprint, with a "I verified this key fingerprint
-with the sender out-of-band" tick box. Only after the recipient ticks it does
+asks them to type the file's 8-byte key fingerprint that they received from the
+sender out-of-band. The fingerprint is deliberately not shown in the file, so
+an intercepted page cannot present a fingerprint for someone to confirm
+against. Only after the recipient enters the matching value does
 the notice turn green "Signed and verified". Recipients should treat an amber
-notice as the normal, safe state and only tick the box after verifying the
-fingerprint through a channel independent of the file - never because the file
-looks self-consistent.
+notice as the normal, safe state and only enter a fingerprint obtained through
+a channel independent of the file - never one they found in the file itself.
 
 Generated files reconstruct a download in-browser (JavaScript Blob + download
 attribute). This matches MITRE ATT&CK T1027.006 and will be flagged/quarantined
