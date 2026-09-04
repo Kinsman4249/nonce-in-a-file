@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-09-04
+
+### Changed
+
+- All action buttons in the builder, including the mini actions, the recipient
+  delete buttons, and the logo and lock-icon file pickers, now use the project's
+  signature pink-purple-blue gradient with white, centred text instead of a
+  plain bordered style.
+- The "Custom button text colour" toggle is gone. The button text colour
+  picker is always shown, grouped with the banner gradient and page background
+  colour pickers, and the chosen colour (which defaults to the page background)
+  is always applied to the unlock button's text in generated files.
+- The colour picker row stays five across on normal screens and only wraps to
+  one per line at very low resolutions.
+
+### Fixed
+
+- The logo and lock-icon file-upload buttons no longer render their label in
+  dark grey; their text is now white.
+
 ## [1.11.0] - 2026-09-04
 
 ### Added
