@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-09-04
+
+### Changed
+
+- The Signing card moved below Links and now opens expanded by default (still optional, labelled recommended), and a "Copy signing key" button sits next to the key generate button.
+- The post-build key fingerprint is now shown as a clickable value that copies itself to the clipboard on click.
+
 ## [1.8.0] - 2026-09-04
 
 ### Added
