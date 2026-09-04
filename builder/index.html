@@ -67,9 +67,11 @@
   .recrow{display:flex;gap:8px;margin-bottom:10px;align-items:stretch}
   .recrow select{flex:0 0 150px;padding:10px 12px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;font-family:inherit}
   .recrow input{flex:1;padding:10px 12px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-  .recDel{border:1px solid #d1d5db;background:#fff;color:#b91c1c;border-radius:8px;cursor:pointer;padding:0 14px;font-weight:600}
-  .mini{background:#fff;border:1px solid #d1d5db;color:#374151;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;margin:4px 0 10px}
-  .mini:hover{border-color:#b166b1;color:#b166b1}
+  .recDel{background:linear-gradient(90deg,#fa396a,#b166b1,#5a9cfa);color:#fff;border:0;border-radius:8px;cursor:pointer;padding:0 14px;font-weight:600}
+  .recDel:hover{filter:brightness(1.06)}
+  .mini{background:linear-gradient(90deg,#fa396a,#b166b1,#5a9cfa);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;margin:4px 0 10px}
+  .mini:hover{filter:brightness(1.06)}
+  .mini:disabled{opacity:.6;cursor:not-allowed}
   .keysub{margin-top:18px;padding-top:16px;border-top:1px dashed #d1d5db}
   #fileCard.dropping{border-color:#b166b1;box-shadow:0 0 0 3px rgba(177,102,177,.18)}
   .minirow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
