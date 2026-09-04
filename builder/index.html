@@ -171,6 +171,31 @@
     </div>
   </section>
 
+  <section class="card collapsible">
+    <button type="button" class="card-head" aria-expanded="true">
+      <span class="caret" aria-hidden="true"></span>
+      <h2>Signing (optional, recommended)</h2>
+    </button>
+    <div class="card-body">
+      <p class="sub">Sign the ciphertext with an ECDSA P-256 key so a recipient can verify the file came from you and was not altered. The signature proves the file was not tampered with since signing; it does NOT prove who sent it, because the public key ships inside the same file. A recipient only sees a green "verified" badge after they confirm this file's key fingerprint with you out-of-band. Share that fingerprint separately (e.g. chat, card, phone call) - never through the file itself.</p>
+      <label class="toggle"><input type="checkbox" id="enableSign"> Sign this file</label>
+      <div class="field">
+        <label for="signerLabel">Signer display name</label>
+        <input type="text" id="signerLabel" placeholder="e.g. Acme HR">
+        <p class="hint">Shown to recipients as the stated sender. This label is not authenticated by itself - recipients verify your key fingerprint out-of-band, then the label is just a convenience.</p>
+      </div>
+      <div class="field">
+        <label for="signPriv">Signing private key (ECDSA P-256, base64 or PEM)</label>
+        <textarea id="signPriv" placeholder="Leave blank to generate a fresh signing key for this build."></textarea>
+        <p class="hint">Keep the private key. Recipients only learn its public half (embedded in each signed file) and the 8-byte fingerprint of it, which is what they confirm out-of-band. Reuse the same key across builds so recipients can recognize you by a stable fingerprint.</p>
+        <div class="minirow">
+          <button type="button" id="genSign" class="mini">Generate a signing private key</button>
+          <button type="button" id="copySign" class="mini">Copy signing key</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="card collapsible collapsed">
     <button type="button" class="card-head" aria-expanded="false">
       <span class="caret" aria-hidden="true"></span>
@@ -212,28 +237,6 @@
           <input type="file" id="keyringImport" accept=".json,application/json" style="display:none">
         </div>
       </div>
-    </div>
-  </section>
-
-  <section class="card collapsible collapsed">
-    <button type="button" class="card-head" aria-expanded="false">
-      <span class="caret" aria-hidden="true"></span>
-      <h2>Signing (optional)</h2>
-    </button>
-    <div class="card-body">
-      <p class="sub">Sign the ciphertext with an ECDSA P-256 key so a recipient can verify the file came from you and was not altered. The signature proves the file was not tampered with since signing; it does NOT prove who sent it, because the public key ships inside the same file. A recipient only sees a green "verified" badge after they confirm this file's key fingerprint with you out-of-band. Share that fingerprint separately (e.g. chat, card, phone call) - never through the file itself.</p>
-      <label class="toggle"><input type="checkbox" id="enableSign"> Sign this file</label>
-      <div class="field">
-        <label for="signerLabel">Signer display name</label>
-        <input type="text" id="signerLabel" placeholder="e.g. Acme HR">
-        <p class="hint">Shown to recipients as the stated sender. This label is not authenticated by itself - recipients verify your key fingerprint out-of-band, then the label is just a convenience.</p>
-      </div>
-      <div class="field">
-        <label for="signPriv">Signing private key (ECDSA P-256, base64 or PEM)</label>
-        <textarea id="signPriv" placeholder="Leave blank to generate a fresh signing key for this build."></textarea>
-        <p class="hint">Keep the private key. Recipients only learn its public half (embedded in each signed file) and the 8-byte fingerprint of it, which is what they confirm out-of-band. Reuse the same key across builds so recipients can recognize you by a stable fingerprint.</p>
-      </div>
-      <button type="button" id="genSign" class="mini">Generate a signing private key</button>
     </div>
   </section>
 
@@ -2075,15 +2078,21 @@
     updateConfirmMatch();
     if (copyPwBtn) { copyPwBtn.textContent = 'Password generated'; setTimeout(function () { copyPwBtn.textContent = 'Copy password'; }, 2000); }
   });
+
+  // Copy `value` to the clipboard and briefly flash a status on `btn`. The
+  // button's resting label is `base`; on success it shows `done`, on failure
+  // `fail`, and if there is nothing to copy it shows `empty` for each branch.
+  function copyToClipboard(value, btn, base, done, fail, empty) {
+    if (!value) { btn.textContent = empty; setTimeout(function () { btn.textContent = base; }, 2000); return; }
+    navigator.clipboard.writeText(String(value)).then(function () {
+      btn.textContent = done; setTimeout(function () { btn.textContent = base; }, 2000);
+    }).catch(function () {
+      btn.textContent = fail; setTimeout(function () { btn.textContent = base; }, 2000);
+    });
+  }
   if (copyPwBtn) {
     copyPwBtn.addEventListener('click', function () {
-      var g = pwEl.value;
-      if (!g) { copyPwBtn.textContent = 'Nothing to copy'; setTimeout(function () { copyPwBtn.textContent = 'Copy password'; }, 2000); return; }
-      navigator.clipboard.writeText(g).then(function () {
-        copyPwBtn.textContent = 'Copied'; setTimeout(function () { copyPwBtn.textContent = 'Copy password'; }, 2000);
-      }).catch(function () {
-        copyPwBtn.textContent = 'Copy failed'; setTimeout(function () { copyPwBtn.textContent = 'Copy password'; }, 2000);
-      });
+      copyToClipboard(pwEl.value, copyPwBtn, 'Copy password', 'Copied', 'Copy failed', 'Nothing to copy');
     });
   }
 
@@ -2317,6 +2326,15 @@
     });
   });
 
+  // Copy the signing private key to the clipboard so it can be saved elsewhere.
+  var copySignBtn = document.getElementById('copySign');
+  if (copySignBtn) {
+    copySignBtn.addEventListener('click', function () {
+      var priv = document.getElementById('signPriv').value.trim();
+      copyToClipboard(priv, copySignBtn, 'Copy signing key', 'Copied', 'Copy failed', 'Generate a key first');
+    });
+  }
+
   function setWarnings(list) {
     var el = document.getElementById('warnings');
     if (!list.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
@@ -2526,7 +2544,19 @@
         var b = new Uint8Array(d);
         var fp = '';
         for (var i = 0; i < 8; i++) { fp += ('0' + b[i].toString(16)).slice(-2); }
-        noteEl.textContent = 'Built ' + builtWhat + '. It unlocks for any recipient in the ring (correct password or matching private key). Recipients will see key fingerprint ' + fp + ' - share it out-of-band (chat, card, call) so they can confirm you as the sender; their badge stays amber until they do.';
+        noteEl.innerHTML = '';
+        noteEl.appendChild(document.createTextNode('Built ' + builtWhat + '. It unlocks for any recipient in the ring (correct password or matching private key). Recipients will see key fingerprint '));
+        var fpEl = document.createElement('span');
+        fpEl.textContent = fp;
+        fpEl.style.cursor = 'pointer';
+        fpEl.style.fontWeight = '700';
+        fpEl.style.textDecoration = 'underline';
+        fpEl.title = 'Click to copy the fingerprint';
+        fpEl.addEventListener('click', function () {
+          copyToClipboard(fp, fpEl, fp, fp + ' (copied)', 'Copy failed', '');
+        });
+        noteEl.appendChild(fpEl);
+        noteEl.appendChild(document.createTextNode(' - share it out-of-band (chat, card, call) so they can confirm you as the sender; their badge stays amber until they do.'));
         noteEl.style.display = 'block';
       });
     }).catch(function (e) {
