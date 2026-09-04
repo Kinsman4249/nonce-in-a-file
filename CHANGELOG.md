@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- The Links card in the builder is now hidden entirely, because the legal,
+  privacy, and learn-more links are fixed to the deployment and cannot be edited
+  in the UI.
+
 ## [1.9.1] - 2026-09-04
 
 ### Changed
