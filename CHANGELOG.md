@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-04
+
+### Added
+
+- The builder now shows live WCAG-style contrast recommendations in the Branding card as the banner and page colours are edited, and appends any shortfall to the build-time warnings.
+- The generated page's accents, links, button colours, borders, and text are now derived from the banner gradient and the page background (mapped to the chosen palette), each picked for a readable contrast ratio against its background.
+
+### Changed
+
+- The coloured shield logo on generated files is now centred and rendered larger, and its gradient always follows the banner colours instead of a fixed theme.
+
 ## [1.7.0] - 2026-09-04
 
 ### Changed
