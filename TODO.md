@@ -155,6 +155,20 @@ Check items off as they land and add a line to `CHANGELOG.md` under
 - [ ] Publish the extension and mail/sharing docs from one landing URL so
       every advertising channel (Web Stores, QR, badge) points at one origin.
 
+## Advertising / SEO settings
+
+- [ ] Add SEO settings and other SEO material as GitHub Actions repository
+      variables, injected into the staged builder at deploy time exactly like
+      `BUILDER_TITLE` / `LOGO_URL` in `deploy-builder.yml` (optional, never
+      aborts the deploy): e.g. `SEO_DESCRIPTION`, Open Graph `OG_*` and Twitter
+      Card `TWITTER_*` tags so the builder page ranks and shares cleanly.
+- [ ] Add the matching optional `<meta>` injection points (description, og:,
+      twitter:) to `builder/index.html` `<head>`, keeping them unset-by-default
+      so the current behavior is unchanged until an owner sets a variable.
+- [ ] Update `CHANGELOG.md` and document the new variables in `README.md` /
+      `PRIVACY.md` (verify none of the SEO tags leak a tracker or widen the
+      generated-file CSP).
+
 ## Advertising on the builder page
 
 - [ ] Decide which ad inventory to run on the builder page (e.g. Google AdSense,
