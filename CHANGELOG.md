@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-09-04
+
+### Added
+
+- The Branding card gains a "Custom button text colour" toggle and a colour
+  picker. When the toggle is off, a generated file's unlock-button label
+  follows the page's text colour so it stays readable against the chosen
+  background; when on, the picked colour is used instead, and the live contrast
+  notes in the builder reflect the override.
+- The File card's native file picker is replaced with a styled "Choose files"
+  button that shows the selected file names, or how many were selected, after a
+  selection or a drag and drop.
+
 ## [1.10.0] - 2026-09-04
 
 ### Changed
