@@ -10,10 +10,14 @@ file to their device. Everything happens locally - nothing is ever uploaded.
 
 Two separate static, serverless artifacts:
 
-- `builder/index.html` - the file owner's tool. Lets you pick a file (or a
-  pasted note), set a password or add a public-key recipient, configure
-  branding (logo, colors, headings, link buttons, custom CSS), and generate
-  one output file. This is the only bundle deployed by CI.
+- `builder/` - the file owner's tool, a multi-file static app with no build
+  step and no dependencies. `builder/index.html` holds the markup, styles, and
+  the deploy-time config; the logic lives in ordered classic `<script>` modules
+  under `builder/js/` (helpers, theme, envelope, the embedded crypto bundles,
+  crypto, output, and one file per UI card). Lets you pick a file (or a pasted
+  note), set a password or add a public-key recipient, configure branding
+  (logo, colors, headings, link buttons, custom CSS), and generate one output
+  file. This directory is the only artifact deployed by CI.
 - The generated output files - a single self-contained HTML file per protected
   document. Each contains decrypt-and-download logic only; there is no code
   path that can encrypt new content or produce another protected file.
@@ -280,9 +284,12 @@ static and infrequently changed, there is nothing to automate.
 
 ## Development
 
-The artifacts are plain HTML/CSS/JS with no build step. To run the builder
-locally, serve `builder/` (`python3 -m http.server 8000` in the repo root and
-open http://localhost:8000/builder/) or just open `builder/index.html`.
+The artifacts are plain HTML/CSS/JS with no build step and no bundler. The
+builder is split into ordered classic `<script>` modules under `builder/js/`
+loaded from `builder/index.html` (still `file://`-safe, so no ES modules). To
+run the builder locally, serve `builder/` (`python3 -m http.server 8000` in the
+repo root and open http://localhost:8000/builder/) or just open
+`builder/index.html`.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the contribution workflow.
 

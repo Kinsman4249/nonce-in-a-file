@@ -75,9 +75,9 @@ for (const url of SAMPLE_URLS) {
 }
 
 console.log('\n[B] Embedded-copy integrity (builder QR_B64/QR_SHA256 vs vendor)');
-const builderHtml = fs.readFileSync(path.join(ROOT, 'builder', 'index.html'), 'utf8');
-const shaMatch = builderHtml.match(/var QR_SHA256 = '([0-9a-f]{64})';/);
-const b64Match = builderHtml.match(/var QR_B64 = '([^']+)';/);
+const qrB64Src = fs.readFileSync(path.join(ROOT, 'builder', 'js', 'qr-b64.js'), 'utf8');
+const shaMatch = qrB64Src.match(/var QR_SHA256 = '([0-9a-f]{64})';/);
+const b64Match = qrB64Src.match(/var QR_B64 = '([^']+)';/);
 const vendor = fs.readFileSync(path.join(ROOT, 'builder', 'vendor', 'qrcode.js'), 'utf8');
 
 if (!b64Match || !shaMatch) { fail('builder carries QR_B64 / QR_SHA256 constants', 'constants not found'); }
@@ -103,8 +103,10 @@ console.log('\n[C.5] Output inline scripts carry data-cfasync="false" (Rocket Lo
 // Cloudflare Rocket Loader defers and retypes inline scripts it picks up; when the
 // file's CSP then blocks Rocket Loader's own loader, those deferred scripts never
 // run and the decryptor (and its "Share this file" QR) stays dead. Every output
-// inline <script> must therefore opt out so Rocket Loader leaves it alone.
-const cfasync = (builderHtml.match(/<script data-cfasync="false">/g) || []).length;
+// inline <script> must therefore opt out so Rocket Loader leaves it alone. These
+// tags live inside the makeOutput template strings in builder/js/output.js.
+const outputSrc = fs.readFileSync(path.join(ROOT, 'builder', 'js', 'output.js'), 'utf8');
+const cfasync = (outputSrc.match(/<script data-cfasync="false">/g) || []).length;
 if (cfasync >= 3) pass('all output inline scripts declare data-cfasync="false" (' + cfasync + ' found)');
 else fail('all output inline scripts declare data-cfasync="false"', 'found ' + cfasync + ' of 3');
 
@@ -120,7 +122,7 @@ function makeEl(id) {
   return el;
 }
 function bootDecryptor(href) {
-  const s = fs.readFileSync(path.join(ROOT, 'builder', 'index.html'), 'utf8');
+  const s = outputSrc;
   const start = s.indexOf('var OUTPUT_JS = [');
   const join = s.indexOf('].join', start);
   const arrText = s.slice(start + 'var OUTPUT_JS = ['.length, join).replace(/,\s*([,\]])/g, '$1');
@@ -159,7 +161,7 @@ console.log('\n[E] Signed-file badge (amber until recipient confirms out-of-band
 // sets a change handler on the confirmation box, so each boot waits for the
 // digest/verify to resolve before asserting. Reuses the makeEl DOM stub.
 function bootSigned(href, payload) {
-  const s = fs.readFileSync(path.join(ROOT, 'builder', 'index.html'), 'utf8');
+  const s = outputSrc;
   const start = s.indexOf('var OUTPUT_JS = [');
   const join = s.indexOf('].join', start);
   const arrText = s.slice(start + 'var OUTPUT_JS = ['.length, join).replace(/,\s*([,\]])/g, '$1');
