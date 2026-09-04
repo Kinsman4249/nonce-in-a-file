@@ -55,6 +55,12 @@
   .filefield .file-btn:hover{filter:brightness(1.06)}
   .filefield .file-btn input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
   .filefield .file-btn .file-lbl{pointer-events:none}
+  .filepick{position:relative;display:inline-flex;align-items:center;justify-content:center;width:auto;
+        background:linear-gradient(90deg,#fa396a,#b166b1,#5a9cfa);color:#fff;border:0;border-radius:8px;
+        padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;overflow:hidden;margin:4px 0 0}
+  .filepick:hover{filter:brightness(1.06)}
+  .filepick input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+  .filepick .file-lbl{pointer-events:none}
   .fileChosen{font-size:13px;color:#6b7280;margin-top:8px;word-break:break-all}
   .note{font-size:13px;color:#0f766e;margin-top:12px;display:none}
   .error{color:#b91c1c;font-size:13px;margin-top:12px;display:none}
@@ -138,7 +144,7 @@
       <label class="toggle"><input type="checkbox" id="showLogo" checked> Logo</label>
       <div class="field">
         <label for="logoFile">Logo image (optional; falls back to the default mark)</label>
-        <input type="file" id="logoFile" accept="image/*">
+        <label class="filepick"><span class="file-lbl" id="logoFileLbl">Choose logo</span><input type="file" id="logoFile" accept="image/*"></label>
       </div>
 
       <label class="toggle"><input type="checkbox" id="showBanner" checked> Banner / gradient background</label>
@@ -164,7 +170,7 @@
       <label class="toggle"><input type="checkbox" id="showLock" checked> Lock icon</label>
       <div class="field">
         <label for="lockFile">Lock icon image (optional; falls back to the default icon). Turn off for a text-only password prompt.</label>
-        <input type="file" id="lockFile" accept="image/*">
+        <label class="filepick"><span class="file-lbl" id="lockFileLbl">Choose lock icon</span><input type="file" id="lockFile" accept="image/*"></label>
       </div>
 
       <label class="toggle"><input type="checkbox" id="customOnText"> Custom button text colour (defaults to the page's text colour)</label>

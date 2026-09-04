@@ -155,3 +155,16 @@ if (useNoteEl) {
   useNoteEl.addEventListener('change', syncNoteMode);
   syncNoteMode();
 }
+
+// Styled logo and lock-icon file picks: refresh their "Choose logo/lock icon"
+// button labels with the selected filename, mirroring the main file chooser.
+function wireFilePick(id, lblId, base) {
+  var input = document.getElementById(id);
+  var lbl = document.getElementById(lblId);
+  if (!input || !lbl) { return; }
+  input.addEventListener('change', function () {
+    lbl.textContent = input.files && input.files.length ? input.files[0].name : base;
+  });
+}
+wireFilePick('logoFile', 'logoFileLbl', 'Choose logo');
+wireFilePick('lockFile', 'lockFileLbl', 'Choose lock icon');
