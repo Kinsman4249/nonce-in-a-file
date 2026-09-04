@@ -17,6 +17,13 @@
  *      builder/vendor/qrcode.js, so the copy shipped inside every generated
  *      file can never drift from the reviewed, arm's-length vendored file.
  *
+ *   E) Signed-file badge: a generated file never shows the green "Signed and
+ *      verified" badge on its own. It starts amber (integrity OK) with the
+ *      8-byte key fingerprint and an out-of-band confirmation box, turns green
+ *      only after the recipient ticks that box, reverts to amber when
+ *      unchecked, shows red for a tampered file, and stays hidden for an
+ *      unsigned file.
+ *
  * Both libraries are permissive (MIT encoder, Apache-2.0 decoder) and live in
  * the repo (builder/vendor/, test/vendor/) with their licenses - no BUSL change.
  */
@@ -147,4 +154,84 @@ function bootDecryptor(href) {
   delete global.document; delete global.location; delete global.atob; delete global.window;
 }
 
-console.log('\nDone.');
+console.log('\n[E] Signed-file badge (amber until recipient confirms out-of-band)');
+// For a signed payload the signature badge runs an async WebCrypto chain and
+// sets a change handler on the confirmation box, so each boot waits for the
+// digest/verify to resolve before asserting. Reuses the makeEl DOM stub.
+function bootSigned(href, payload) {
+  const s = fs.readFileSync(path.join(ROOT, 'builder', 'index.html'), 'utf8');
+  const start = s.indexOf('var OUTPUT_JS = [');
+  const join = s.indexOf('].join', start);
+  const arrText = s.slice(start + 'var OUTPUT_JS = ['.length, join).replace(/,\s*([,\]])/g, '$1');
+  const outjs = new Function('return [' + arrText + ']')().join('\n');
+  const els = {};
+  global.document = { getElementById(id) { return els[id] || (els[id] = makeEl(id)); }, createElement() { return makeEl('a'); } };
+  global.location = { protocol: 'https:', href };
+  global.atob = (s2) => Buffer.from(s2, 'base64').toString('binary');
+  global.window = global;
+  const config = JSON.stringify({ payload }).replace(/</g, '\\u003c');
+  new Function(outjs.replace('__CONFIG__', config))();
+  return els;
+}
+(async () => {
+  try {
+    const wc = crypto.webcrypto;
+    const kp = await wc.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
+    const spki = new Uint8Array(await wc.subtle.exportKey('spki', kp.publicKey));
+    const pub = Buffer.from(spki).toString('base64');
+    const ivBytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    const ctBytes = new Uint8Array([16, 17, 18, 19, 20]);
+    const iv = Buffer.from(ivBytes).toString('base64');
+    const ct = Buffer.from(ctBytes).toString('base64');
+    const label = 'Acme HR';
+    const data = new TextEncoder().encode('label:' + label + '\n');
+    const ivct = new Uint8Array(ivBytes.length + ctBytes.length);
+    ivct.set(ivBytes, 0); ivct.set(ctBytes, ivBytes.length);
+    const toSign = new Uint8Array(data.length + ivct.length);
+    toSign.set(data, 0); toSign.set(ivct, data.length);
+    const sig = new Uint8Array(await wc.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, kp.privateKey, toSign));
+
+    const payload = { v: 4, iv, ct, recipients: [], sign: { label, pub, sig: Buffer.from(sig).toString('base64') } };
+
+    const els = bootSigned('https://example.com/doc.html', payload);
+    await new Promise(r => setTimeout(r, 300));
+    if (els['signed'].className === 'sign info') pass('starts amber (integrity OK), not green');
+    else fail('starts amber (integrity OK), not green', els['signed'].className);
+    if (els['signConfirmWrap'].hidden === false) pass('out-of-band confirmation box is shown');
+    else fail('out-of-band confirmation box is shown');
+    if (/fingerprint/.test(els['signedMsg'].textContent) && /out-of-band/.test(els['signedMsg'].textContent)) {
+      pass('message surfaces the fingerprint and out-of-band task');
+    } else fail('message surfaces the fingerprint and out-of-band task', els['signedMsg'].textContent);
+
+    els['signConfirm'].checked = true;
+    els['signConfirm']._handlers.change();
+    if (els['signed'].className === 'sign ok') pass('turns green after recipient confirms the fingerprint');
+    else fail('turns green after recipient confirms the fingerprint', els['signed'].className);
+    if (/Signed and verified/.test(els['signedMsg'].textContent)) pass('green message reports verified');
+    else fail('green message reports verified', els['signedMsg'].textContent);
+
+    els['signConfirm'].checked = false;
+    els['signConfirm']._handlers.change();
+    if (els['signed'].className === 'sign info') pass('reverts to amber when unconfirmed');
+    else fail('reverts to amber when unconfirmed', els['signed'].className);
+    delete global.document; delete global.location; delete global.atob; delete global.window;
+
+    const badPayload = JSON.parse(JSON.stringify(payload));
+    badPayload.ct = Buffer.from([99, 99, 99, 99, 99]).toString('base64');
+    const els2 = bootSigned('https://example.com/doc2.html', badPayload);
+    await new Promise(r => setTimeout(r, 300));
+    if (els2['signed'].className === 'sign bad') pass('tampered file shows red, no confirm box');
+    else fail('tampered file shows red, no confirm box', els2['signed'].className);
+    if (els2['signConfirmWrap'].hidden === true) pass('tampered file hides the confirm box');
+    else fail('tampered file hides the confirm box');
+    delete global.document; delete global.location; delete global.atob; delete global.window;
+
+    const unsigned = bootSigned('https://example.com/doc3.html', { v: 4, iv, ct, recipients: [], sign: null });
+    if (unsigned['signed'].hidden === true) pass('unsigned file keeps the badge hidden');
+    else fail('unsigned file keeps the badge hidden');
+    delete global.document; delete global.location; delete global.atob; delete global.window;
+  } catch (e) {
+    fail('signed-file badge', (e && e.stack) || e);
+  }
+  console.log('\nDone.');
+})();

@@ -218,16 +218,17 @@
       <h2>Signing (optional)</h2>
     </button>
     <div class="card-body">
-      <p class="sub">Sign the ciphertext with an ECDSA P-256 key so a recipient can verify the file came from you and was not altered. The public key travels inside the built file; the decryptor verifies the detached signature and shows a verified badge.</p>
+      <p class="sub">Sign the ciphertext with an ECDSA P-256 key so a recipient can verify the file came from you and was not altered. The signature proves the file was not tampered with since signing; it does NOT prove who sent it, because the public key ships inside the same file. A recipient only sees a green "verified" badge after they confirm this file's key fingerprint with you out-of-band. Share that fingerprint separately (e.g. chat, card, phone call) - never through the file itself.</p>
       <label class="toggle"><input type="checkbox" id="enableSign"> Sign this file</label>
       <div class="field">
         <label for="signerLabel">Signer display name</label>
         <input type="text" id="signerLabel" placeholder="e.g. Acme HR">
+        <p class="hint">Shown to recipients as the stated sender. This label is not authenticated by itself - recipients verify your key fingerprint out-of-band, then the label is just a convenience.</p>
       </div>
       <div class="field">
         <label for="signPriv">Signing private key (ECDSA P-256, base64 or PEM)</label>
         <textarea id="signPriv" placeholder="Leave blank to generate a fresh signing key for this build."></textarea>
-        <p class="hint">Keep the private key. Recipients only learn its public half (embedded in each signed file).</p>
+        <p class="hint">Keep the private key. Recipients only learn its public half (embedded in each signed file) and the 8-byte fingerprint of it, which is what they confirm out-of-band. Reuse the same key across builds so recipients can recognize you by a stable fingerprint.</p>
       </div>
       <button type="button" id="genSign" class="mini">Generate a signing private key</button>
     </div>
@@ -1086,14 +1087,23 @@
     var labelBytes = new TextEncoder().encode('label:' + (label || '') + '\n');
     var ivCt = concatBytes(ctIv, ctBytes);
     var data = concatBytes(labelBytes, ivCt);
-    return crypto.subtle.importKey('pkcs8', b64ToBytes(stripPem(privB64)), { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']
-    ).then(function (privKey) {
+    return importSignKey(privB64).then(function (privKey) {
       return Promise.all([
         spkiFromPrivate(privKey),
         crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privKey, data).then(function (s) { return bytesToB64(new Uint8Array(s)); })
       ]);
     }).then(function (ar) {
       return { label: label, pub: ar[0], sig: ar[1] };
+    });
+  }
+
+  // Import a signing private key (base64 or PEM) as an ECDSA P-256 sign key.
+  // Throws a targeted error so a typo in the box is reported as a bad key,
+  // not as a generic build failure.
+  function importSignKey(privB64) {
+    return crypto.subtle.importKey('pkcs8', b64ToBytes(stripPem(privB64)), { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']
+    ).catch(function () {
+      return Promise.reject(new Error('The signing private key is not a usable ECDSA P-256 key. Check it is a valid PKCS#8 base64/PEM private key, or clear the box to generate a fresh one.'));
     });
   }
 
@@ -1208,8 +1218,13 @@
     '.builtby a{color:#5a9cfa;text-decoration:none;font-weight:600}',
     '.builtby a:hover{text-decoration:underline}',
     '.sign{font-size:14px;margin:0 0 20px;padding:10px 12px;border-radius:8px}',
+    '.signmsg{margin:0 0 4px}',
+    '.sign.info{color:#92400e;background:#fffbeb;border:1px solid #fde68a}',
+    '.sign.info .confirm{margin-top:8px}',
     '.sign.ok{color:#0f766e;background:#f0fdfa;border:1px solid #99f6e4}',
+    '.sign.ok .confirm{margin-top:8px}',
     '.sign.bad{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca}',
+    '.sign .confirm{display:block;font-size:13px;color:inherit;cursor:pointer}',
     '.keysub{margin-top:24px;padding-top:18px;border-top:1px solid #e5e7eb}',
     'textarea{width:100%;padding:12px 14px;font-size:14px;border:1px solid #d1d5db;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
     'textarea:focus{outline:none;border-color:#b166b1}',
@@ -1484,11 +1499,17 @@
     '  }',
     '  var sigEl=document.getElementById("signed");',
     '  if(sigEl&&payload.sign){',
-    '    // Compute the 8-byte key fingerprint and the signature verification in',
-    '    // one chain so the badge text is only ever built from the digest result',
-    '    // (no shared mutable fp that could read as empty if digest lags verify).',
+    '    // A verified signature only proves the file was not altered since',
+    '    // signing. Because the signer\'s public key ships inside this same file,',
+    '    // verifying against it does NOT prove who sent it - anyone could have',
+    '    // re-signed with their own key. So the badge never goes green on its',
+    '    // own: it shows amber (integrity OK) until the recipient confirms the',
+    '    // 8-byte key fingerprint with the sender out-of-band and ticks the box.',
     '    var pubBytes=b64ToBytes(payload.sign.pub);',
     '    function fpHex(d){var b=new Uint8Array(d),h="";for(var i=0;i<8;i++){h+=("0"+b[i].toString(16)).slice(-2);}return h;}',
+    '    var sigMsg=document.getElementById("signedMsg");',
+    '    var confirmWrap=document.getElementById("signConfirmWrap");',
+    '    var confirmBox=document.getElementById("signConfirm");',
     '    Promise.all([',
     '      crypto.subtle.digest("SHA-256",pubBytes),',
     '      crypto.subtle.importKey("spki",pubBytes,',
@@ -1499,15 +1520,29 @@
     '          concatBytes(b64ToBytes(payload.iv),b64ToBytes(payload.ct))));})',
     '    ]).then(function(ar){',
     '      var fp=fpHex(ar[0]);',
-    '      sigEl.textContent=ar[1]',
-    '        ? "Signed and verified: from "+(payload.sign.label||"this sender")+" (key "+fp+"). Confirm this key fingerprint with the sender out-of-band. File not altered since signing."',
-    '        : "Warning: signature could not be verified - the file may have been altered or is not from the stated sender. Unlock is still allowed; do not trust the contents.";',
-    '      sigEl.className=ar[1]?"sign ok":"sign bad";',
+    '      if(!ar[1]){',
+    '        sigEl.className="sign bad"; sigMsg.textContent=',
+    '          "Warning: signature could not be verified - the file may have been altered or is not from the stated sender. Unlock is still allowed; do not trust the contents.";',
+    '        confirmWrap.hidden=true; sigEl.hidden=false; return;',
+    '      }',
+    '      function paint(){',
+    '        var confirmed=confirmBox.checked;',
+    '        if(confirmed){',
+    '          sigEl.className="sign ok";',
+    '          sigMsg.textContent="Signed and verified: from "+(payload.sign.label||"this sender")+" (key "+fp+"). Fingerprint confirmed with the sender out-of-band; file not altered since signing.";',
+    '        }else{',
+    '          sigEl.className="sign info";',
+    '          sigMsg.textContent="Integrity OK - not altered since signing, but sender authenticating has NOT yet been confirmed. Verify the key fingerprint "+fp+" with the sender out-of-band, then tick the box below.";',
+    '        }',
+    '      }',
+    '      confirmBox.addEventListener("change",paint);',
+    '      confirmWrap.hidden=false;',
     '      sigEl.hidden=false;',
+    '      paint();',
     '    })',
     '    .catch(function(){',
-    '      sigEl.textContent="Warning: signature could not be verified.";',
-    '      sigEl.className="sign bad"; sigEl.hidden=false;',
+    '      sigEl.className="sign bad"; sigMsg.textContent="Warning: signature could not be verified.";',
+    '      confirmWrap.hidden=true; sigEl.hidden=false;',
     '    });',
     '  }',
     // Runtime "Share this file" QR. Only meaningful when the page has a real,
@@ -1588,7 +1623,15 @@
     var hasPw = (payload.recipients || []).some(function (r) { return r.type === 'password'; });
     var hasKey = (payload.recipients || []).some(function (r) { return r.type === 'ecdh'; });
     var signBadge = payload.sign
-      ? '<p id="signed" class="sign" hidden></p>'
+      ? [
+          '<div id="signed" class="sign" hidden>',
+          '<p id="signedMsg" class="signmsg"></p>',
+          '<label id="signConfirmWrap" class="confirm" hidden>',
+          '<input type="checkbox" id="signConfirm">',
+          ' I verified this key fingerprint with the sender out-of-band',
+          '</label>',
+          '</div>'
+        ].join('')
       : '';
     var pwForm = hasPw
       ? [
@@ -2313,8 +2356,21 @@
       var builtWhat = sourceList.length > 1
         ? 'a ' + sourceList.length + '-file bundle'
         : safeName(sourceList[0].name);
-      noteEl.textContent = 'Built ' + builtWhat + '. It unlocks for any recipient in the ring (correct password or matching private key).';
-      noteEl.style.display = 'block';
+      if (!payload.sign) {
+        noteEl.textContent = 'Built ' + builtWhat + '. It unlocks for any recipient in the ring (correct password or matching private key).';
+        noteEl.style.display = 'block';
+        return;
+      }
+      // Signed build: surface the recipient-visible key fingerprint so the
+      // sender knows exactly what to communicate out-of-band before the
+      // recipient will see a green "verified" badge.
+      crypto.subtle.digest('SHA-256', b64ToBytes(payload.sign.pub)).then(function (d) {
+        var b = new Uint8Array(d);
+        var fp = '';
+        for (var i = 0; i < 8; i++) { fp += ('0' + b[i].toString(16)).slice(-2); }
+        noteEl.textContent = 'Built ' + builtWhat + '. It unlocks for any recipient in the ring (correct password or matching private key). Recipients will see key fingerprint ' + fp + ' - share it out-of-band (chat, card, call) so they can confirm you as the sender; their badge stays amber until they do.';
+        noteEl.style.display = 'block';
+      });
     }).catch(function (e) {
       errEl.textContent = 'Build failed: ' + (e && e.message ? e.message : e);
       errEl.style.display = 'block';

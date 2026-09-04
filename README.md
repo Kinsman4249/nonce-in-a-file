@@ -52,11 +52,17 @@ never breaks previously generated files. Files carry a format version
   the same file. The key ring is capped at 50 entries and identical password
   recipients are deduplicated so Argon2id runs once per distinct secret.
 - Optional sender authenticity: the builder can sign the ciphertext with an
-  ECDSA P-256 key (one you provide, or generated per build). The generated
-  file embeds the signature and the signer's public key and shows a "Signed
-  and verified" badge on load; the signature also covers the IV, so a
-  corrupted IV reads as a signature failure rather than a bogus verified
-  badge. This is optional and independent of the always-on Learn-more link.
+  ECDSA P-256 key (one you provide, or generated per build). The signature
+  proves the file has not been altered since signing and also covers the IV,
+  so a corrupted IV reads as a signature failure rather than a silent one.
+  But because the signer's public key ships inside the same file, a signature
+  that verifies does NOT by itself prove who sent it - anyone can re-sign
+  with their own key. So the generated file does not show a green "Signed and
+  verified" badge on its own: it shows an amber "integrity OK" notice until
+  the recipient confirms the file's 8-byte key fingerprint **out-of-band**
+  (e.g. chat, phone, a pre-shared key page) and ticks a confirmation box. The
+  sender must communicate that fingerprint through a channel separate from
+  the file. This is optional and independent of the always-on Learn-more link.
 - Encryption: AES-256-GCM (authenticated encryption, so tampering is detected)
   with a fresh random 12-byte nonce per file.
 - Compression: plaintext is gzip-compressed first using the browser's native
@@ -148,6 +154,32 @@ padlock. Leave `LOGO_URL` unset (or empty) to keep the padlock.
    elapsed-seconds readout is shown, since compression and Argon2id can take a
    moment on large files.
 
+#### Signing, and proving who sent a file
+
+Optional sender authenticity lives on the "Signing" card. To use it:
+
+1. Tick "Sign this file". Either paste your ECDSA P-256 private key
+   (base64 or PEM) or click "Generate a signing private key". Leave the box
+   blank to auto-generate a one-off key, but **reuse the same key across
+   builds** so recipients recognise you by a stable fingerprint. The builder
+   rejects a private key that is not a usable ECDSA P-256 key instead of
+   silently continuing.
+2. Set a signer display name (shows to recipients as the stated sender).
+   Remember this label is not authenticated by itself - see below.
+3. Build, then note the 8-byte **key fingerprint** the builder reports after
+   the build. That fingerprint is what lets a recipient actually confirm you
+   are the sender.
+
+The signature only proves the file was not altered since signing. Because the
+signer's public key ships inside the same file, verifying it does **not** prove
+who sent it. A recipient only sees a green "Signed and verified" badge after
+they confirm that fingerprint **out-of-band** - through a channel separate from
+the file itself (a chat message, a phone call, a pre-shared key page) - and tick
+a confirmation box. Send the fingerprint by one of those channels; never rely on
+the file to vouch for itself. If you do not share the fingerprint, recipients
+will see an amber "integrity OK - sender not yet confirmed" notice instead of a
+green badge, which is the safe default.
+
 ### Sending or hosting a protected file
 
 Share the generated `.html` however you like - file attachment, WeTransfer,
@@ -163,6 +195,15 @@ open the file. The share toggle is hidden entirely for `file://` views, where
 there is no shareable URL. The QR encodes `location.href` as-is, so never host
 a file at a URL that carries a token, query parameter, or other secret - the
 QR exposes whatever is in the address bar.
+
+When a signed file is opened, recipients see a signature notice beneath the
+lock. It is amber unless they confirm the sender: it reads "integrity OK" and
+shows the file's 8-byte key fingerprint, with a "I verified this key fingerprint
+with the sender out-of-band" tick box. Only after the recipient ticks it does
+the notice turn green "Signed and verified". Recipients should treat an amber
+notice as the normal, safe state and only tick the box after verifying the
+fingerprint through a channel independent of the file - never because the file
+looks self-consistent.
 
 Generated files reconstruct a download in-browser (JavaScript Blob + download
 attribute). This matches MITRE ATT&CK T1027.006 and will be flagged/quarantined
