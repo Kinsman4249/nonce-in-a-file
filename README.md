@@ -135,10 +135,12 @@ padlock. Leave `LOGO_URL` unset (or empty) to keep the padlock.
    without pasting them again.
 4. Adjust branding as needed. The optional cards (Recipients, Signing,
    Branding, Links, Custom CSS) start collapsed; click a card header to expand
-   it. Every element (logo, banner, heading, description, lock icon, custom
-   CSS) has an independent on/off toggle applied at generation time. The
-   Legal, Privacy, and Learn more buttons are always included and cannot be
-   turned off.
+   it. Every element (logo, banner, heading, description, lock icon, the
+   "Share this file" button and its QR code, custom CSS) has an independent
+   on/off toggle applied at generation time. Turning off "Share / QR code"
+   omits the share button, the QR code, and the embedded QR encoder entirely,
+   so the built file carries no share/QR footprint. The Legal, Privacy, and
+   Learn more buttons are always included and cannot be turned off.
 5. Click "Build protected file". The page downloads a `.html` file that,
    when the correct password is entered, downloads your original file - or, for
    a multi-file bundle, shows a file list with per-file download buttons and a

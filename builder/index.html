@@ -152,6 +152,9 @@
         <label for="lockFile">Lock icon image (optional; falls back to the default icon). Turn off for a text-only password prompt.</label>
         <input type="file" id="lockFile" accept="image/*">
       </div>
+
+      <label class="toggle"><input type="checkbox" id="showShare" checked> Share / QR code</label>
+      <p class="hint">When generated, every file shows a "Share this file" button and a QR code of the page URL (when served over http(s)). Turn this off to omit the button, QR, and the embedded QR encoder entirely from the built file.</p>
     </div>
   </section>
   <section class="card collapsible collapsed">
@@ -1224,7 +1227,14 @@
     '.sharepan{margin-top:14px;padding:16px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa;display:inline-block;max-width:100%}',
     '.sharepan .sharelbl{font-size:13px;color:#6b7280;margin:0 0 12px}',
     '.sharepan[hidden]{display:none}',
-    '.sharepan .squares svg{display:block;margin:0 auto;max-width:100%;height:auto}'
+    '.sharepan .squares svg{display:block;margin:0 auto;max-width:100%;height:auto}',
+    // Inline message display for a message-only file: the unlocked plain text is
+    // shown read-only inside a scrollable box with a Download button below, so a
+    // short secret/message is readable on the page instead of forcing a download.
+    '#msg{margin-top:16px}',
+    '#msg.prlbl{font-size:14px;font-weight:600;color:#374151;margin:0 0 8px}',
+    '#msg pre{white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow:auto;background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;padding:14px;font-size:14px;line-height:1.5;margin:0 0 12px}',
+    '#msg button{margin:0;padding:9px 16px;border:0;border-radius:8px;background:#5a9cfa;color:#fff;font-weight:700;cursor:pointer;font-size:14px}'
   ].join('\n');
 
   // -------------------------------------------------------------------------
@@ -1296,6 +1306,22 @@
     '      box.appendChild(all);',
     '    }',
     '  }',
+    // Message-only single file (v3, text/plain): decode the unlocked bytes and
+    // show them read-only in a #msg box with a Download button, rather than
+    // auto-downloading a text file the recipient could have just read inline.
+    '  function renderText(text,name){',
+    '    var box=document.getElementById("msg");',
+    '    if(!box){downloadBlob(new File([text],name||"note.txt",{type:"text/plain"}));return;}',
+    '    note.textContent="Entered key is valid. Message ready below.";note.hidden=false;',
+    '    var pre=document.createElement("pre");pre.textContent=text;',
+    '    var dl=document.createElement("button");dl.type="button";',
+    '    dl.textContent="Download "+(name||"message");',
+    '    dl.addEventListener("click",function(){',
+    '      downloadBlob(new Blob([text],{type:"text/plain"}));',
+    '      note.textContent="Download started. If nothing happened, check your browser download settings.";note.hidden=false;',
+    '    });',
+    '    box.appendChild(pre);box.appendChild(dl);box.hidden=false;',
+    '  }',
     '  function decryptMulti(body,meta){',
     '    var files=[];var off=0;',
     '    function step(idx){',
@@ -1320,7 +1346,13 @@
     '        if(meta.pad){body=body.subarray(0,body.length-meta.pad);}',
     '        if(meta.files){return decryptMulti(body,meta);}',
     '        var load=meta.z?decompress(body):Promise.resolve(body);',
-    '        return load.then(function(final){download(final,meta);});',
+    '        return load.then(function(final){',
+    '          if(meta.t==="text/plain"){',
+    '            renderText(new TextDecoder().decode(new Uint8Array(final)),meta.n);',
+    '          } else {',
+    '            download(final,meta);',
+    '          }',
+    '        });',
     '      });',
     '  }',
     '  // Derive the 64 bytes (wrap key + commit key) for one password recipient.',
@@ -1483,6 +1515,7 @@
     // the block stays hidden. When served over http(s), the button reveals a
     // QR of the current location, rendered offline by the embedded
     // qrcode-generator encoder and shown as an inline SVG.
+    '  /*__SHARE_BLOCK_START__*/',
     '  var shareEl=document.getElementById("share");',
     '  if(shareEl){',
     '    var hosted=/^https?:$/.test(String(location&&location.protocol||""));',
@@ -1515,6 +1548,7 @@
     '      });',
     '    }',
     '  }',
+    '  /*__SHARE_BLOCK_END__*/',
     '})();'
   ].join('\n');
 
@@ -1590,6 +1624,30 @@
       ? '<p class="builtby">Built by the <a href="' + esc(BUILDER_ORIGIN) + '" target="_blank" rel="noopener">nonce-in-a-file builder</a></p>'
       : '<p class="builtby">Built by a local copy of the nonce-in-a-file builder</p>';
 
+    // Runtime "Share this file" block. Hidden by default; the decryptor
+    // reveals it only when this page is served over http(s) (a shareable
+    // URL exists) and renders a QR of the current location on expand.
+    // Disabled builds omit both this HTML and the runtime logic and the
+    // embedded QR encoder, so no share button or QR ever appears.
+    var shareBlock = o.showShare
+      ? [
+          '<div class="share" id="share" hidden>',
+          '<button type="button" id="shareToggle" class="sharelink">Share this file</button>',
+          '<div class="sharepan" id="sharePan" hidden>',
+          '<p class="sharelbl">Scan the QR code to open this page on another device and share it:</p>',
+          '<div class="squares" id="shareQr" role="img" aria-label="QR code linking to this page"></div>',
+          '</div>',
+          '</div>'
+        ].join('')
+      : '';
+
+    // Runtime decryptor script, with the "Share this file" logic stripped out
+    // (including its sentinel markers) when the build disabled the feature.
+    var outputJs = OUTPUT_JS.replace('__CONFIG__', JSON.stringify({ payload: payload }).replace(/</g, '\\u003c'));
+    if (!o.showShare) {
+      outputJs = outputJs.replace(/\/\*__SHARE_BLOCK_START__\*\/[\s\S]*?\/\*__SHARE_BLOCK_END__\*\//, '');
+    }
+
     return [
       '<!DOCTYPE html>',
       '<html lang="en">',
@@ -1623,19 +1681,14 @@
       pwForm,
       keyForm,
       '<div id="files" hidden></div>',
+      // Inline plain-text display for a message-only file: the unlocked message
+      // renders read-only here with a Download button, instead of the single
+      // text/plain item being force-downloaded on unlock.
+      '<div id="msg" hidden></div>',
       '<p class="note" id="note" hidden></p>',
       foot,
       builtByLine,
-      // Runtime "Share this file" block. Hidden by default; the decryptor
-      // reveals it only when this page is served over http(s) (a shareable
-      // URL exists) and renders a QR of the current location on expand.
-      '<div class="share" id="share" hidden>',
-      '<button type="button" id="shareToggle" class="sharelink">Share this file</button>',
-      '<div class="sharepan" id="sharePan" hidden>',
-      '<p class="sharelbl">Scan the QR code to open this page on another device and share it:</p>',
-      '<div class="squares" id="shareQr" role="img" aria-label="QR code linking to this page"></div>',
-      '</div>',
-      '</div>',
+      shareBlock,
       '</main>',
       // Deploy the Argon2id WASM engine inline so the decryptor (which follows)
       // can run Argon2id with zero network access. The bundle is self-contained:
@@ -1653,11 +1706,16 @@
       // Deploy the QR Code encoder inline (qrcode-generator, MIT) so the runtime
       // "Share this file" QR needs zero network access. Unmodified vendored
       // bundle (builder/vendor/qrcode.js); exposed as the global `qrcode`.
+      // Omitted entirely when the build disabled the share/QR feature.
+      o.showShare
+        ? [
+            '<script data-cfasync="false">',
+            qrLibSource().replace(/<\/script/g, '<\\/script'),
+            '<' + '/' + 'script>'
+          ].join('\n')
+        : '',
       '<script data-cfasync="false">',
-      qrLibSource().replace(/<\/script/g, '<\\/script'),
-      '<' + '/' + 'script>',
-      '<script data-cfasync="false">',
-      OUTPUT_JS.replace('__CONFIG__', JSON.stringify({ payload: payload }).replace(/</g, '\\u003c')),
+      outputJs,
       '<' + '/' + 'script>',
       '</body>',
       '</html>'
@@ -2184,6 +2242,7 @@
       showHeading: document.getElementById('showHeading').checked,
       showDesc: document.getElementById('showDesc').checked,
       showLock: document.getElementById('showLock').checked,
+      showShare: document.getElementById('showShare').checked,
       legal: { label: LEGAL_LABEL, url: LEGAL_URL },
       privacy: { label: PRIVACY_LABEL, url: PRIVACY_URL }
     };
