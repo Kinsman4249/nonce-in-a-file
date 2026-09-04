@@ -158,11 +158,9 @@ document.getElementById('generate').addEventListener('click', function () {
     showDesc: document.getElementById('showDesc').checked,
     showLock: document.getElementById('showLock').checked,
     showShare: document.getElementById('showShare').checked,
-    // Button text colour override: empty means "auto", which keeps the
-    // built file's unlock button text matching the page's text colour.
-    textColor: document.getElementById('customOnText').checked
-      ? normColor(document.getElementById('btnTextColor').value, '#ffffff')
-      : '',
+    // Button text colour: the chosen colour is always applied. It defaults to
+    // the page background colour (both default to #ffffff) but can be changed.
+    textColor: normColor(document.getElementById('btnTextColor').value, '#ffffff'),
     legal: { label: LEGAL_LABEL, url: LEGAL_URL },
     privacy: { label: PRIVACY_LABEL, url: PRIVACY_URL }
   };
